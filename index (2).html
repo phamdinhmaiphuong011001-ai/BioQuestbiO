@@ -1,0 +1,3154 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BioQuest 2026 - Đột Phá Sinh Học THPT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Montserrat:wght@600;700;800;900&family=JetBrains+Mono:wght@600;700;800&family=Press+Start+2P&display=swap" rel="stylesheet">
+
+<!-- Firebase SDK Compat -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+<!-- PDF.js để đọc file PDF tài liệu/SGK ngay trên trình duyệt -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+</script>
+
+<style>
+:root {
+  --emerald: #10b981;
+  --emerald-glow: rgba(16, 185, 129, 0.45);
+  --cyan: #06b6d4;
+  --amber: #f59e0b;
+  --rose: #f43f5e;
+  --purple: #a855f7;
+  --glass-card: rgba(15, 23, 42, 0.92);
+  --glass-border: rgba(16, 185, 129, 0.35);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
+  background: linear-gradient(135deg, rgba(15,23,42,0.92), rgba(6,78,59,0.88)), url('bg-greenhouse.jpg') center/cover no-repeat fixed;
+  color: #f1f5f9;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+h1,h2,h3,h4 { font-family: 'Montserrat', sans-serif; }
+
+/* FIX LỖI FONT CHỮ HUD GAME: Font Press Start 2P không có tiếng Việt -> dùng Montserrat/JetBrains Mono cho tiếng Việt chuẩn 100% */
+.pixel-font { font-family: 'Press Start 2P', monospace; }
+.hud-font { font-family: 'Montserrat', sans-serif; font-weight: 700; }
+.num-font { font-family: 'JetBrains Mono', monospace; font-weight: 700; }
+
+/* TOAST THÔNG BÁO */
+#toastContainer {
+  position: fixed; top: 1.2rem; left: 50%; transform: translateX(-50%);
+  z-index: 100000; display: flex; flex-direction: column; gap: 0.5rem; pointer-events: none;
+}
+.toast-msg {
+  pointer-events: auto; min-width: 320px; max-width: 90vw;
+  background: rgba(15, 23, 42, 0.96); border: 1px solid var(--emerald);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.7), 0 0 15px var(--emerald-glow);
+  color: #fff; padding: 0.75rem 1.4rem; border-radius: 999px;
+  font-size: 0.92rem; font-weight: 600; display: flex; align-items: center; gap: 0.6rem;
+  animation: toastSlide 0.35s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+}
+.toast-msg.error {
+  border-color: var(--rose);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.7), 0 0 15px rgba(244, 63, 94, 0.45);
+}
+@keyframes toastSlide {
+  from { opacity: 0; transform: translateY(-20px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* NAVBAR */
+.navbar {
+  position: sticky; top:0; z-index:1000;
+  background: rgba(15,23,42,0.96); backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--glass-border); padding: 0.65rem 1.2rem;
+  display: flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.6rem;
+}
+.logo {
+  font-size:1.45rem; font-weight:800;
+  background: linear-gradient(90deg,#10b981,#06b6d4,#38bdf8);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  display:flex; align-items:center; gap:0.4rem;
+}
+.logo span.badge {
+  font-size: 0.7rem; padding: 2px 7px; border-radius: 4px;
+  background: rgba(16,185,129,0.2); border: 1px solid var(--emerald);
+  color: #a7f3d0; font-weight:700;
+}
+.nav-tabs { display:flex; gap:0.35rem; flex-wrap:wrap; }
+.nav-btn {
+  background: transparent; border:1px solid transparent; color:#94a3b8;
+  padding:0.45rem 0.85rem; border-radius:999px; font-size:0.88rem; font-weight:600;
+  cursor:pointer; transition: all 0.2s; font-family:inherit;
+}
+.nav-btn:hover { color:#fff; border-color:var(--emerald); }
+.nav-btn.active {
+  background: linear-gradient(135deg,rgba(16,185,129,0.3),rgba(6,182,212,0.25));
+  color:#fff; border-color:var(--emerald); box-shadow: 0 0 12px var(--emerald-glow);
+}
+.nav-right { display:flex; align-items:center; gap:0.5rem; }
+.icon-btn {
+  height:36px; padding:0 0.75rem; border-radius:999px;
+  background:rgba(255,255,255,0.08); border:1px solid var(--glass-border);
+  color:#e2e8f0; cursor:pointer; display:flex; align-items:center; gap:0.35rem;
+  font-size:0.85rem; font-weight:600; font-family:inherit;
+}
+.icon-btn:hover { background:rgba(16,185,129,0.25); }
+.auth-btn {
+  background:linear-gradient(135deg,#10b981,#0d9488); border:none; color:#fff;
+  padding:0.45rem 1rem; border-radius:999px; font-weight:700; cursor:pointer; font-size:0.85rem; font-family:inherit;
+}
+
+.main { max-width:1200px; margin:0 auto; padding:1.2rem 1rem 6rem; }
+.tab-content { display:none; animation:fadeIn 0.25s ease; }
+.tab-content.active { display:block; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
+
+.glass {
+  background: var(--glass-card); backdrop-filter: blur(14px);
+  border:1px solid var(--glass-border); border-radius:1rem;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.35);
+}
+.banner { text-align:center; padding:2.5rem 1.2rem; margin-bottom:1.5rem; }
+.banner h1 { font-size:clamp(1.8rem,3.8vw,2.5rem); margin-bottom:0.5rem; }
+.banner p { color:#cbd5e1; max-width:650px; margin:0 auto 1.2rem; line-height:1.6; font-size:0.95rem; }
+.btn-primary {
+  background:linear-gradient(135deg,#10b981,#0d9488); border:none; color:#fff;
+  padding:0.6rem 1.3rem; border-radius:999px; font-weight:700; cursor:pointer; font-family:inherit;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 20px var(--emerald-glow); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-secondary {
+  background: rgba(255,255,255,0.08); border: 1px solid var(--glass-border); color: #e2e8f0;
+  padding:0.6rem 1.2rem; border-radius:999px; font-weight:600; cursor:pointer; font-family:inherit;
+}
+.btn-secondary:hover { background: rgba(255,255,255,0.15); }
+
+.grid-4 { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:1rem; }
+.feature-card { text-align:center; cursor:pointer; padding:1.4rem 1rem; transition:transform 0.2s; }
+.feature-card:hover { transform:translateY(-4px); border-color:var(--emerald); }
+.feature-card .icon { font-size:2.2rem; margin-bottom:0.4rem; }
+.feature-card h3 { font-size:1.1rem; margin-bottom:0.3rem; color:#6ee7b7; }
+.feature-card p { font-size:0.85rem; color:#94a3b8; line-height:1.45; }
+
+/* KHUNG GAME PIXEL ART */
+.game-viewport {
+  position: relative; max-width: 580px; margin: 0 auto 1.5rem;
+  background: #000; border: 3px solid #10b981; border-radius: 12px;
+  overflow: hidden; box-shadow: 0 0 30px rgba(16,185,129,0.35);
+}
+.pixel-hud {
+  position: absolute; top: 8px; left: 8px; right: 8px;
+  display: flex; justify-content: space-between; align-items: center;
+  background: rgba(4, 47, 46, 0.92); border: 2px solid #34d399;
+  border-radius: 8px; padding: 6px 12px; z-index: 10; backdrop-filter: blur(6px);
+}
+.hud-title {
+  color: #a7f3d0; line-height: 1.35; font-family: 'Montserrat', sans-serif;
+  font-size: 0.78rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.hud-title small {
+  color: #6ee7b7; font-size: 0.7rem; font-weight: 600; text-transform: none; display: block; margin-top: 1px;
+}
+.hud-stats { display: flex; align-items: center; gap: 6px; }
+.hud-tag {
+  background: rgba(0,0,0,0.7); padding: 4px 7px; border-radius: 6px;
+  border: 1px solid #10b981; color: #fbbf24; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; font-weight: 700;
+}
+.lifelines-overlay {
+  position: absolute; top: 56px; right: 10px;
+  display: flex; flex-direction: column; gap: 6px; z-index: 10;
+}
+.life-badge {
+  background: rgba(15,23,42,0.92); border: 1px solid #38bdf8; color: #7dd3fc;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 0.7rem; padding: 5px 8px;
+  border-radius: 6px; cursor: pointer; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.6);
+}
+.life-badge:disabled { opacity: 0.35; cursor: not-allowed; }
+
+#pixelStageCanvas {
+  width: 100%; height: 400px; display: block;
+  image-rendering: pixelated; image-rendering: crisp-edges;
+}
+.game-quiz-panel { background: #090f1d; border-top: 3px solid #10b981; padding: 1.1rem; }
+.quiz-q-text { font-size: 0.95rem; line-height: 1.55; color: #f1f5f9; margin-bottom: 0.85rem; font-weight: 600; }
+.pixel-options { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
+@media (max-width: 600px) { .pixel-options { grid-template-columns: 1fr; } }
+.p-btn {
+  text-align: left; background: #1e293b; border: 1px solid #334155; color: #cbd5e1;
+  padding: 0.65rem 0.85rem; border-radius: 8px; cursor: pointer; font-family: inherit;
+  font-size: 0.9rem; transition: all 0.15s; display: flex; align-items: center; gap: 0.5rem;
+}
+.p-btn:hover:not(:disabled) { border-color: #10b981; background: rgba(16, 185, 129, 0.15); color: #fff; }
+.p-btn.correct { background: rgba(16, 185, 129, 0.35) !important; border-color: #10b981 !important; color: #a7f3d0 !important; font-weight: 700; }
+.p-btn.wrong { background: rgba(239, 68, 68, 0.35) !important; border-color: #ef4444 !important; color: #fca5a5 !important; }
+.p-btn.eliminated { opacity: 0.2; pointer-events: none; text-decoration: line-through; }
+.p-key {
+  font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; font-weight: 800;
+  background: rgba(0,0,0,0.5); border: 1px solid #10b981; color: #6ee7b7; padding: 2px 6px; border-radius: 4px;
+}
+.quiz-solution {
+  margin-top: 0.8rem; background: rgba(6, 78, 59, 0.45); border-left: 4px solid var(--emerald);
+  padding: 0.8rem; border-radius: 6px; font-size: 0.88rem; line-height: 1.5; display: none;
+}
+
+/* ĐỀ THI & ĐỒNG HỒ ĐẾM NGƯỢC */
+.exam-subtabs { display:flex; gap:0.5rem; margin-bottom:1.2rem; }
+.exam-subbtn {
+  padding:0.45rem 1rem; border-radius:999px; border:1px solid var(--glass-border);
+  background:rgba(255,255,255,0.05); color:#94a3b8; font-weight:600; cursor:pointer; font-family:inherit; font-size:0.88rem;
+}
+.exam-subbtn.active {
+  background:linear-gradient(135deg,rgba(16,185,129,0.3),rgba(6,182,212,0.25));
+  color:#fff; border-color:var(--emerald);
+}
+.exam-timer-box {
+  background: rgba(15,23,42,0.9); border: 2px solid var(--amber); border-radius: 999px;
+  padding: 0.4rem 1.1rem; display: flex; align-items: center; gap: 0.5rem; font-weight: 800; font-size: 1.1rem; color: #fbbf24;
+  box-shadow: 0 0 15px rgba(245, 158, 11, 0.25);
+}
+.exam-timer-box.matrix-timer { border-color: var(--cyan); color: #38bdf8; box-shadow: 0 0 15px rgba(6, 182, 212, 0.25); }
+.question-item { margin-bottom:1.1rem; padding:1.2rem; transition: border-color 0.2s; }
+.question-item:hover { border-color: rgba(16, 185, 129, 0.6); }
+.question-item h4 { font-size:0.98rem; margin-bottom:0.75rem; line-height:1.55; font-weight:600; }
+.mcq-opts label { display:block; padding:0.4rem 0.6rem; cursor:pointer; font-size:0.92rem; border-radius: 6px; transition: background 0.15s; }
+.mcq-opts label:hover { background: rgba(255,255,255,0.04); }
+.mcq-opts input { margin-right:0.6rem; accent-color:var(--emerald); }
+.tf-row {
+  display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;
+  background:rgba(15,23,42,0.6); padding:0.6rem 0.85rem; border-radius:0.5rem; gap:0.5rem; margin-bottom:0.5rem;
+  border: 1px solid rgba(255,255,255,0.05);
+}
+.tf-text { flex:1; min-width:240px; font-size:0.9rem; line-height:1.45; }
+.tf-choices label { margin-left:0.9rem; cursor:pointer; font-size:0.88rem; }
+.tf-choices input { accent-color: var(--cyan); }
+.short-input {
+  width:100%; max-width:240px; padding:0.55rem 0.8rem; border-radius:0.5rem;
+  background:rgba(15,23,42,0.85); border:1px solid var(--glass-border); color:#fff; font-size:0.95rem; font-family:inherit;
+}
+.essay-textarea {
+  width:100%; min-height:110px; padding:0.85rem; border-radius:0.6rem;
+  background:rgba(15,23,42,0.85); border:1px solid var(--glass-border); color:#fff; font-size:0.92rem; font-family:inherit; resize:vertical;
+  line-height: 1.5;
+}
+.submit-exam-btn {
+  display:block; width:100%; max-width:380px; margin:1.8rem auto 1rem; padding:0.9rem;
+  font-size:1.05rem; font-weight:800; background:linear-gradient(135deg,#10b981,#0d9488);
+  border:none; color:#fff; border-radius:999px; cursor:pointer; font-family:inherit;
+  box-shadow: 0 4px 20px var(--emerald-glow); transition: transform 0.15s;
+}
+.submit-exam-btn:hover { transform: translateY(-2px); }
+.exam-solution-box {
+  margin-top:0.75rem; padding:0.8rem 1rem; border-radius:0.5rem;
+  background:rgba(6,78,59,0.45); border-left:4px solid var(--emerald); font-size:0.88rem; line-height:1.55; display:none;
+}
+.essay-hint-box {
+  margin-top:0.75rem; padding:0.9rem 1.1rem; border-radius:0.5rem;
+  background:rgba(30,58,138,0.45); border-left:4px solid var(--cyan); font-size:0.88rem; line-height:1.55; display:none;
+}
+
+/* LAB DI TRUYỀN */
+.lab-modes { display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom:1.2rem; }
+.mode-btn {
+  padding:0.45rem 0.9rem; border-radius:999px; border:1px solid var(--glass-border);
+  background:rgba(255,255,255,0.05); color:#94a3b8; cursor:pointer; font-size:0.85rem; font-family:inherit;
+}
+.mode-btn.active { background:linear-gradient(135deg,rgba(16,185,129,0.3),rgba(6,182,212,0.2)); color:#fff; border-color:var(--emerald); }
+.lab-controls { display:flex; flex-wrap:wrap; gap:1.2rem; margin-bottom:1.2rem; align-items:flex-end; }
+.lab-controls label { display:block; font-size:0.85rem; color:#94a3b8; margin-bottom:0.35rem; font-weight:600; }
+.lab-controls select {
+  background:rgba(15,23,42,0.85); border:1px solid var(--glass-border);
+  color:#6ee7b7; padding:0.55rem 0.8rem; border-radius:0.6rem; font-family:inherit; font-weight:600; font-size:0.92rem;
+}
+.punnett { width:100%; border-collapse:collapse; margin:1rem 0; font-size:0.9rem; }
+.punnett th, .punnett td {
+  border:1px solid var(--glass-border); padding:0.65rem; text-align:center; background:rgba(15,23,42,0.55);
+}
+.punnett th { background:rgba(16,185,129,0.25); color:#6ee7b7; font-weight:700; }
+.lab-visual-canvas {
+  width:100%; height:200px; border-radius:0.75rem; border:1px solid var(--glass-border);
+  background:#090d16; display:block; margin-top:1rem;
+}
+
+/* WIKI & FLASHCARD */
+.search-box {
+  width:100%; padding:0.75rem 1.1rem; border-radius:999px;
+  background:rgba(15,23,42,0.75); border:1px solid var(--glass-border);
+  color:#fff; font-size:0.95rem; margin-bottom:1rem; font-family:inherit;
+}
+.flash-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:1rem; }
+.flashcard { perspective:1000px; height:180px; cursor:pointer; }
+.flash-inner { position:relative; width:100%; height:100%; transition:transform 0.5s; transform-style:preserve-3d; }
+.flashcard.flipped .flash-inner { transform:rotateY(180deg); }
+.flash-front, .flash-back {
+  position:absolute; inset:0; backface-visibility:hidden; display:flex; align-items:center;
+  justify-content:center; text-align:center; padding:1.2rem; border-radius:1rem; font-size:0.92rem;
+}
+.flash-front { background:rgba(16,185,129,0.18); border:1px solid var(--emerald); }
+.flash-back { background:rgba(6,78,59,0.55); border:1px solid var(--cyan); transform:rotateY(180deg); }
+
+/* CHATBOT DR. CODA */
+.chatbot { position:fixed; bottom:1.2rem; right:1.2rem; z-index:999; width:360px; max-width:calc(100vw - 2rem); }
+.chat-toggle {
+  width:56px; height:56px; border-radius:50%; background:linear-gradient(135deg,#10b981,#06b6d4);
+  border:none; cursor:pointer; box-shadow:0 0 20px var(--emerald-glow); font-size:1.8rem;
+  display:flex; align-items:center; justify-content:center; margin-left:auto;
+}
+.chat-window { display:none; flex-direction:column; height:450px; margin-bottom:0.6rem; border-radius:1rem; overflow:hidden; }
+.chat-window.open { display:flex; }
+.chat-header {
+  background:linear-gradient(135deg,#059669,#0d9488); padding:0.75rem 1rem;
+  font-weight:700; display:flex; justify-content:space-between; align-items:center; font-size:0.95rem;
+}
+.chat-messages {
+  flex:1; overflow-y:auto; padding:0.8rem; background:rgba(15,23,42,0.92);
+  display:flex; flex-direction:column; gap:0.6rem;
+}
+.msg { max-width:86%; padding:0.6rem 0.85rem; border-radius:0.75rem; font-size:0.88rem; line-height:1.45; word-wrap:break-word; }
+.msg.bot { background:rgba(16,185,129,0.22); align-self:flex-start; border:1px solid rgba(16,185,129,0.3); }
+.msg.user { background:rgba(59,130,246,0.32); align-self:flex-end; border:1px solid rgba(59,130,246,0.4); }
+.chat-input-wrap { display:flex; border-top:1px solid var(--glass-border); background:rgba(15,23,42,0.95); }
+.chat-input { flex:1; background:transparent; border:none; color:#fff; padding:0.75rem; font-family:inherit; font-size:0.9rem; outline:none; }
+.chat-send { background:var(--emerald); border:none; color:#0f172a; padding:0 1.2rem; cursor:pointer; font-weight:700; font-family:inherit; }
+
+/* MODAL */
+.modal-overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:9999;
+  display:none; align-items:center; justify-content:center; padding:1rem;
+}
+.modal-overlay.open { display:flex; }
+.cert-card {
+  max-width:520px; width:100%; text-align:center; padding:2rem 1.5rem;
+  border:2px solid #fbbf24; background: linear-gradient(135deg, rgba(30,41,59,0.96), rgba(15,23,42,0.96));
+}
+
+#confettiCanvas { position:fixed; inset:0; pointer-events:none !important; z-index:9999; display:none; }
+.text-emerald { color:#6ee7b7; } .text-amber { color:#fbbf24; } .text-rose { color:#f87171; } .text-cyan { color:#38bdf8; }
+.hidden { display:none !important; }
+
+/* PREMIUM GAME UI ENHANCEMENTS */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #070d19; }
+::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #10b981, #06b6d4); border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: #34d399; }
+
+body {
+  background:
+    radial-gradient(circle at 15% 15%, rgba(16, 185, 129, 0.22) 0%, transparent 50%),
+    radial-gradient(circle at 85% 25%, rgba(6, 182, 212, 0.18) 0%, transparent 50%),
+    linear-gradient(160deg, rgba(6, 11, 22, 0.68) 0%, rgba(9, 21, 38, 0.65) 48%, rgba(5, 30, 27, 0.72) 100%),
+    url('bg-greenhouse.jpg') center/cover no-repeat fixed !important;
+}
+
+.navbar {
+  background: rgba(6, 11, 22, 0.88) !important;
+  border-bottom: 1px solid rgba(52, 211, 153, 0.25) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.55) !important;
+}
+
+.nav-btn {
+  position: relative;
+  letter-spacing: 0.2px;
+}
+.nav-btn.active {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.28), rgba(6, 182, 212, 0.22)) !important;
+  border: 1px solid rgba(52, 211, 153, 0.65) !important;
+  box-shadow: 0 0 18px rgba(16, 185, 129, 0.32), inset 0 0 10px rgba(52, 211, 153, 0.15) !important;
+}
+
+.glass {
+  background: linear-gradient(165deg, rgba(15, 23, 42, 0.86), rgba(9, 15, 30, 0.92)) !important;
+  border: 1px solid rgba(52, 211, 153, 0.24) !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+}
+
+.banner {
+  position: relative;
+  overflow: hidden;
+  padding: 3.2rem 1.5rem !important;
+  border: 1px solid rgba(52, 211, 153, 0.35) !important;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(16, 185, 129, 0.22), transparent 65%),
+    linear-gradient(180deg, rgba(15, 23, 42, 0.9), rgba(7, 13, 25, 0.96)) !important;
+}
+.banner::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 10%; right: 10%; height: 2px;
+  background: linear-gradient(90deg, transparent, #34d399, #38bdf8, #fbbf24, transparent);
+}
+.banner h1 {
+  background: linear-gradient(135deg, #ffffff 15%, #6ee7b7 55%, #38bdf8 95%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 4px 18px rgba(16, 185, 129, 0.28));
+  letter-spacing: -0.5px;
+}
+
+.feature-card {
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.25s, box-shadow 0.25s !important;
+}
+.feature-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(52, 211, 153, 0.08), transparent 60%);
+  opacity: 0;
+  transition: opacity 0.25s;
+  pointer-events: none;
+}
+.feature-card:hover {
+  transform: translateY(-6px) !important;
+  border-color: #34d399 !important;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6), 0 0 22px rgba(16, 185, 129, 0.25) !important;
+}
+.feature-card:hover::after { opacity: 1; }
+
+.game-viewport {
+  border: 2px solid #34d399 !important;
+  border-radius: 16px !important;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.75), 0 0 35px rgba(16, 185, 129, 0.28) !important;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #10b981 0%, #059669 50%, #0d9488 100%) !important;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
+  letter-spacing: 0.2px;
+}
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px) scale(1.01) !important;
+  box-shadow: 0 8px 25px rgba(16, 185, 129, 0.5) !important;
+}
+
+
+/* CHATBOT IMAGE UPLOAD & SCREEN CAPTURE */
+.chat-window { width: 390px; max-width: calc(100vw - 1.5rem); height: 500px; }
+.chat-preview-bar {
+  display: none; align-items: center; justify-content: space-between; gap: 0.5rem;
+  padding: 0.45rem 0.75rem; background: rgba(6, 78, 59, 0.45);
+  border-top: 1px solid var(--glass-border); font-size: 0.8rem; color: #a7f3d0;
+}
+.chat-preview-bar.show { display: flex; }
+.chat-preview-thumb {
+  height: 44px; max-width: 90px; object-fit: cover; border-radius: 6px;
+  border: 1px solid var(--emerald);
+}
+.chat-remove-img {
+  background: rgba(244, 63, 94, 0.25); border: 1px solid var(--rose); color: #fda4af;
+  border-radius: 50%; width: 22px; height: 22px; cursor: pointer; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; font-size: 0.8rem;
+}
+.chat-tool-btn {
+  background: transparent; border: none; color: #6ee7b7; padding: 0 0.55rem;
+  cursor: pointer; font-size: 1.15rem; display: flex; align-items: center; justify-content: center;
+  transition: color 0.15s, transform 0.15s;
+}
+.chat-tool-btn:hover { color: #fff; transform: scale(1.1); }
+.msg img.chat-sent-img {
+  max-width: 100%; max-height: 170px; border-radius: 8px; display: block;
+  margin-bottom: 0.4rem; border: 1px solid rgba(255,255,255,0.2);
+}
+
+
+/* MULTI-IMAGE GALLERY FOR MATRIX EXAM */
+.matrix-gallery {
+  display: flex; flex-wrap: wrap; gap: 0.6rem; justify-content: center;
+  margin-top: 0.85rem;
+}
+.matrix-thumb-item {
+  position: relative; width: 76px; height: 76px; border-radius: 8px;
+  overflow: hidden; border: 1.5px solid var(--emerald);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5); background: #090d16;
+}
+.matrix-thumb-item img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+}
+.matrix-thumb-remove {
+  position: absolute; top: 3px; right: 3px; width: 20px; height: 20px;
+  border-radius: 50%; background: rgba(244, 63, 94, 0.92); color: #fff;
+  border: none; font-size: 0.75rem; font-weight: 800; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; line-height: 1;
+}
+.matrix-thumb-remove:hover { background: #e11d48; transform: scale(1.1); }
+.matrix-thumb-badge {
+  position: absolute; bottom: 2px; left: 3px; background: rgba(15, 23, 42, 0.85);
+  color: #6ee7b7; font-size: 0.65rem; font-weight: 700; padding: 1px 4px; border-radius: 4px;
+}
+
+</style>
+</head>
+<body>
+
+<div id="toastContainer"></div>
+<canvas id="confettiCanvas"></canvas>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="logo">
+    🧬 BioQuest <span class="badge">GDPT 2018</span>
+  </div>
+  <div class="nav-tabs">
+    <button class="nav-btn active" data-tab="home">Trang Chủ</button>
+    <button class="nav-btn" data-tab="game">Path of Medicine</button>
+    <button class="nav-btn" data-tab="exam">Ôn Thi & Ma Trận</button>
+    <button class="nav-btn" data-tab="lab">Lab Di Truyền</button>
+    <button class="nav-btn" data-tab="wiki">Wiki & Thẻ Sai</button>
+  </div>
+  <div class="nav-right">
+    <button class="icon-btn" id="soundToggle" title="Bật/Tắt âm thanh">🔊 SFX</button>
+    <button class="icon-btn" id="apiKeyBtn" title="Cài đặt API Key">🔑 Key</button>
+    <button class="auth-btn" id="authBtn">👤 Đăng nhập</button>
+  </div>
+</nav>
+
+<main class="main">
+
+  <!-- ==================== TAB HOME ==================== -->
+  <section id="home" class="tab-content active">
+    <div class="glass banner">
+      <h1>🧬 BioQuest 2026</h1>
+      <p>Nền tảng sinh học tích hợp AI Gemini Flash-Lite & Game pixel RPG 200 Level theo format chuẩn GDPT 2018. Luyện đề thi THPT Quốc Gia (đủ 28 câu chuẩn phân hóa - 50 phút), tạo đề theo ma trận có tự luận kèm đối chiếu SGK PDF (45 phút) và cố vấn Dr. Coda.</p>
+      <div style="display:flex; justify-content:center; gap:0.8rem; flex-wrap:wrap;">
+        <button class="btn-primary" onclick="switchTab('game')">🎮 Chơi Path of Medicine</button>
+        <button class="btn-secondary" onclick="switchTab('exam'); switchExamSub('thpt')">📝 Luyện Đề THPT QG 28 Câu (50p)</button>
+      </div>
+    </div>
+    <div class="grid-4">
+      <div class="glass feature-card" onclick="switchTab('game')">
+        <div class="icon">🕹️</div>
+        <h3>Path of Medicine</h3>
+        <p>Game pixel RPG 200 Level độc bản. Hoàn thành 200 level lập tức kích hoạt bộ 200 câu mới tinh bằng AI.</p>
+      </div>
+      <div class="glass feature-card" onclick="switchTab('exam'); switchExamSub('thpt')">
+        <div class="icon">📑</div>
+        <h3>Đề THPT Quốc Gia (28 Câu)</h3>
+        <p>Chuẩn phân hóa Bộ GD&ĐT: 18 MCQ + 4 Đúng/Sai 16 ý + 6 Điền số ngắn. 50 phút đếm ngược.</p>
+      </div>
+      <div class="glass feature-card" onclick="switchTab('exam'); switchExamSub('matrix')">
+        <div class="icon">📸</div>
+        <h3>Ma Trận Đề & Upload SGK PDF</h3>
+        <p>Upload ảnh ma trận và kèm cả file PDF sách giáo khoa để AI đối chiếu kiến thức chuẩn xác 100%.</p>
+      </div>
+      <div class="glass feature-card" onclick="switchTab('lab')">
+        <div class="icon">🔬</div>
+        <h3>Lab Di Truyền Ảo</h3>
+        <p>Thực nghiệm Mendel, Morgan, Nhóm máu ABO (Iᴬ, Iᴮ, Iᴼ) và Trội không hoàn toàn với đồ họa sống động.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== TAB GAME ==================== -->
+  <section id="game" class="tab-content">
+    <div class="glass" style="max-width:580px; margin:0 auto 0.8rem; padding:0.6rem 1rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
+      <div style="display:flex; align-items:center; gap:0.5rem;">
+        <span style="font-size:0.85rem; color:#94a3b8; font-weight:600;">Chọn Bác Sĩ:</span>
+        <button class="exam-subbtn active" id="btnCharGirl" onclick="setGender('female')">👧 Nữ Bác Sĩ</button>
+        <button class="exam-subbtn" id="btnCharBoy" onclick="setGender('male')">👦 Nam Bác Sĩ</button>
+      </div>
+      <span id="syncStatusBadge" style="font-size:0.78rem; color:#fbbf24; font-weight:700; padding:0.28rem 0.7rem; border-radius:999px; background:rgba(15,23,42,0.75); border:1px solid rgba(245,158,11,0.45);">💾 Đã lưu trên máy</span>
+      
+    </div>
+
+    <div class="game-viewport">
+      <!-- HUD ĐÃ SỬA FONT VIỆT HÓA CHUẨN 100% (KHÔNG BỊ VỠ DẤU TIẾNG VIỆT) -->
+      <div class="pixel-hud">
+        <div class="hud-title">
+          <span id="hudLevelTitle">LEVEL 1 - HỌC SINH THPT</span>
+          <small id="hudStageTitle">Chặng 1: Lab Sinh Học Phổ Thông</small>
+        </div>
+        <div class="hud-stats">
+          <span class="hud-tag" id="hudTimer">30s</span>
+          <span class="hud-tag" id="hudScore">Score: 0</span>
+          <span class="hud-tag" id="hudStreak">🔥 0</span>
+          <span id="hudHearts">❤️❤️❤️</span>
+        </div>
+      </div>
+
+      <div class="lifelines-overlay">
+        <button class="life-badge" id="life5050" onclick="use5050()">50:50<br>(x2)</button>
+        <button class="life-badge" id="lifeTime" onclick="useAdrenaline()">+15s<br>(x2)</button>
+      </div>
+
+      <canvas id="pixelStageCanvas" width="540" height="380"></canvas>
+
+      <div class="game-quiz-panel">
+        <div class="quiz-q-text" id="gameQuestion">Nhấn "Bắt đầu ca trực" để khám phá Path of Medicine!</div>
+        <div class="pixel-options" id="gameOptions"></div>
+        <div class="quiz-solution" id="gameExplain"></div>
+        <div style="text-align:center; margin-top:0.8rem;">
+          <button class="btn-primary" id="gameActionBtn" onclick="nextQuestion()">Bắt đầu ca trực</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== TAB EXAM ==================== -->
+  <section id="exam" class="tab-content">
+    <div class="exam-subtabs">
+      <button class="exam-subbtn active" id="subBtnThpt" onclick="switchExamSub('thpt')">Đề Chuẩn THPT Quốc Gia (Đủ 28 câu - 50 phút)</button>
+      <button class="exam-subbtn" id="subBtnMatrix" onclick="switchExamSub('matrix')">Tạo Đề Theo Ma Trận & SGK PDF (45 phút)</button>
+    </div>
+
+    <!-- SUBTAB 1: THPT QG 50 PHÚT -->
+    <div id="subViewThpt">
+      <div class="glass" style="padding:1rem 1.25rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1.2rem;">
+        <div>
+          <span style="font-weight:800; font-size:1.15rem; color:#fbbf24;" id="examCodeTag">MÃ ĐỀ: 0430</span>
+          <div style="font-size:0.9rem; color:#cbd5e1; margin-top:0.2rem;">Chuẩn ma trận GDPT 2018: 18 Trắc nghiệm + 4 Đúng/Sai (16 ý) + 6 Điền số ngắn</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:0.8rem; flex-wrap:wrap;">
+          <div class="exam-timer-box">
+            <span>⏱️</span> <span id="thptTimerDisplay">50:00</span>
+          </div>
+          <button class="btn-primary" id="btnStartThptTimer" onclick="toggleThptTimer()">▶️ Bắt đầu làm bài</button>
+          <button class="btn-secondary" id="btnThptReload" onclick="generateNewExam()">🔄 Đổi đề mới (AI)</button>
+        </div>
+      </div>
+      <div id="examContainer"></div>
+    </div>
+
+    <!-- SUBTAB 2: MA TRẬN 45 PHÚT + UPLOAD PDF SÁCH (KHÔNG BẮT BUỘC) -->
+    <div id="subViewMatrix" class="hidden">
+      <div class="glass" style="padding:1.5rem; margin-bottom:1.2rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1.2rem;">
+          <div>
+            <h3 class="text-emerald" style="margin-bottom:0.3rem;">📸 Tạo Đề Kiểm Tra Theo Ma Trận & SGK</h3>
+            <p style="color:#94a3b8; font-size:0.88rem;">Thời gian làm bài: 45 phút • Hỗ trợ Trắc nghiệm + Tự Luận (đáp án mở sau khi nộp)</p>
+          </div>
+          <div style="display:flex; align-items:center; gap:0.8rem; flex-wrap:wrap;">
+            <div class="exam-timer-box matrix-timer" id="matrixTimerBox" style="display:none;">
+              <span>⏱️</span> <span id="matrixTimerDisplay">45:00</span>
+            </div>
+            <button class="btn-primary" id="btnStartMatrixTimer" style="display:none;" onclick="toggleMatrixTimer()">▶️ Bắt đầu làm bài</button>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.2rem;">
+          <!-- 1. Upload nhiều ảnh Ma trận / Bảng đặc tả / Tài liệu -->
+          <div style="border:2px dashed var(--glass-border); border-radius:1rem; padding:1.4rem 1rem; text-align:center; background:rgba(15,23,42,0.4); cursor:pointer;" onclick="if(event.target.tagName !== 'BUTTON') document.getElementById('matrixFileInput').click()">
+            <input type="file" id="matrixFileInput" accept="image/*" multiple style="display:none;" onchange="handleMatrixUpload(event)">
+            <div style="font-size:2rem; margin-bottom:0.3rem;">📷</div>
+            <strong style="color:#6ee7b7; font-size:0.95rem;">1. Upload nhiều ảnh Ma trận / Đặc tả</strong>
+            <div style="font-size:0.8rem; color:#94a3b8; margin-top:0.3rem;">Chọn cùng lúc nhiều ảnh hoặc bấm thêm từng ảnh (PNG, JPG)</div>
+            <div id="matrixImageCountTag" style="display:none; margin-top:0.45rem; font-size:0.8rem; color:#fbbf24; font-weight:700;"></div>
+            <div id="matrixPreviewGallery" class="matrix-gallery"></div>
+            <button type="button" id="btnClearMatrixImages" class="btn-secondary" style="display:none; margin-top:0.65rem; padding:0.3rem 0.85rem; font-size:0.78rem;" onclick="clearAllMatrixImages(event)">🗑️ Xóa tất cả ảnh</button>
+          </div>
+
+          <!-- 2. Upload file PDF Sách Giáo Khoa (Không bắt buộc) -->
+          <div style="border:2px dashed rgba(6,182,212,0.35); border-radius:1rem; padding:1.4rem 1rem; text-align:center; background:rgba(15,23,42,0.4); cursor:pointer;" onclick="document.getElementById('pdfFileInput').click()">
+            <input type="file" id="pdfFileInput" accept="application/pdf" style="display:none;" onchange="handlePdfUpload(event)">
+            <div style="font-size:2rem; margin-bottom:0.3rem;">📚</div>
+            <strong style="color:#38bdf8; font-size:0.95rem;">2. Upload PDF Sách/Tài liệu (Tuỳ chọn)</strong>
+            <div style="font-size:0.8rem; color:#94a3b8; margin-top:0.3rem;">Không bắt buộc, giúp AI bám sát 100% ngữ liệu SGK</div>
+            <div id="pdfStatusTag" style="display:none; margin-top:0.6rem; color:#a7f3d0; font-size:0.82rem; font-weight:700;"></div>
+          </div>
+        </div>
+
+        <div style="margin-bottom:1.2rem;">
+          <label style="font-size:0.85rem; color:#cbd5e1; display:block; margin-bottom:0.4rem; font-weight:600;">Hoặc nhập mô tả cấu trúc ma trận (có thể yêu cầu thêm Tự luận):</label>
+          <textarea id="matrixTextPrompt" rows="3" class="search-box" style="border-radius:0.75rem;" placeholder="Ví dụ: Đề Kiểm tra 1 tiết Lớp 12 gồm 8 câu trắc nghiệm (Quy luật Mendel, Morgan) + 2 câu đúng sai (Đột biến NST) + 2 câu ngắn (Tính số nucleotide của DNA) + 1 câu tự luận phả hệ..."></textarea>
+        </div>
+
+        <button class="btn-primary" id="btnGenMatrix" style="width:100%; padding:0.85rem; font-size:1rem;" onclick="generateExamFromMatrix()">🚀 Phân tích Ma trận, Sách & Biên soạn Đề Ngay (Chờ ~30-60s)</button>
+
+        <div id="matrixResultWrap" style="display:none; margin-top:1.5rem;">
+          <div id="matrixExamContent" class="glass" style="padding:1.4rem; line-height:1.6;"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== TAB LAB DI TRUYỀN ==================== -->
+  <section id="lab" class="tab-content">
+    <h2 class="mb-1 text-emerald">🔬 Phòng Thí Nghiệm Di Truyền Ảo</h2>
+    <div class="lab-modes">
+      <button class="mode-btn active" data-mode="abo">Nhóm Máu ABO (Iᴬ, Iᴮ, Iᴼ)</button>
+      <button class="mode-btn" data-mode="mendel">Mendel Đậu Hà Lan</button>
+      <button class="mode-btn" data-mode="morgan">Morgan Ruồi Giấm</button>
+      <button class="mode-btn" data-mode="incomplete">Trội Không Hoàn Toàn</button>
+    </div>
+    <div class="glass" style="padding:1.25rem;">
+      <div id="labDesc" style="color:#cbd5e1; font-size:0.92rem; margin-bottom:1rem; line-height:1.5;"></div>
+      <div class="lab-controls" id="labControls"></div>
+      <button class="btn-primary" onclick="runCross()">⚡ Tiến Hành Phép Lai</button>
+      <canvas id="labVisualCanvas" class="lab-visual-canvas" width="600" height="200"></canvas>
+      <div id="labResult" style="margin-top:1.2rem;"></div>
+    </div>
+  </section>
+
+  <!-- ==================== TAB WIKI ==================== -->
+  <section id="wiki" class="tab-content">
+    <h2 class="mb-1 text-emerald">📖 Bio-Wiki & Thẻ Ôn Tập Câu Sai</h2>
+    <input type="text" class="search-box" id="wikiSearch" placeholder="Tìm thuật ngữ: DNA, RNA, Codon, Đột biến, Cắt nối Exon, Phả hệ, Nhóm máu..." oninput="searchWiki()">
+    <div id="wikiResults"></div>
+    <h3 class="text-amber" style="margin: 1.5rem 0 0.8rem;">🃏 Flashcard Ôn Tập Thông Minh (Tự lưu câu làm sai)</h3>
+    <div class="flash-grid" id="flashGrid"></div>
+    <p id="flashEmpty" style="color:#94a3b8; font-size:0.88rem; margin-top:0.8rem;">Chưa có câu sai nào. Khi bạn trả lời chưa đúng trong game, câu hỏi sẽ tự động lưu vào đây.</p>
+  </section>
+
+</main>
+
+<!-- CHATBOT DR. CODA -->
+<div class="chatbot">
+  <div class="chat-window glass" id="chatWindow">
+    <div class="chat-header">
+      <span>🐦 Dr. Coda • Cố Vấn Sinh Học</span>
+      <button onclick="toggleChat()" style="background:none;border:none;color:#fff;font-size:1.3rem;cursor:pointer;">×</button>
+    </div>
+    <div class="chat-messages" id="chatMessages">
+      <div class="msg bot">Chào bạn! Tôi là Dr. Coda 🐦. Bạn có thể nhắn câu hỏi, <strong>tải ảnh đề bài lên (🖼️)</strong>, <strong>chụp màn hình (📸)</strong> hoặc dán trực tiếp ảnh (<strong>Ctrl + V</strong>) để tôi giải chi tiết từng bước nhé!</div>
+    </div>
+    <div class="chat-preview-bar" id="chatPreviewBar">
+      <div style="display:flex; align-items:center; gap:0.5rem;">
+        <img id="chatPreviewThumb" class="chat-preview-thumb" alt="Ảnh bài tập">
+        <span id="chatPreviewLabel">Ảnh bài tập đã sẵn sàng</span>
+      </div>
+      <button class="chat-remove-img" onclick="clearChatImage()" title="Xóa ảnh">×</button>
+    </div>
+    <div class="chat-input-wrap">
+      <input type="file" id="chatImageInput" accept="image/*" style="display:none;" onchange="handleChatImageUpload(event)">
+      <button class="chat-tool-btn" onclick="document.getElementById('chatImageInput').click()" title="Tải ảnh bài tập lên">🖼️</button>
+      <button class="chat-tool-btn" onclick="captureScreenForChat()" title="Chụp màn hình đề bài">📸</button>
+      <input class="chat-input" id="chatInput" placeholder="Nhập câu hỏi hoặc dán ảnh (Ctrl+V)..." onkeydown="if(event.key==='Enter')sendChat()">
+      <button class="chat-send" onclick="sendChat()">Gửi</button>
+    </div>
+  </div>
+  <button class="chat-toggle" onclick="toggleChat()" title="Dr. Coda">🐦</button>
+</div>
+
+<!-- MODAL CÀI ĐẶT API KEY -->
+<div class="modal-overlay" id="apiKeyModal">
+  <div class="glass" style="max-width:440px; width:100%; padding:1.5rem;">
+    <h3 class="text-emerald" style="margin-bottom:0.5rem;">🔑 Cài Đặt Gemini API Key</h3>
+    <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:1rem; line-height:1.5;">Khóa API kết nối mô hình Gemini Flash-Lite siêu tốc.</p>
+    <input type="text" id="apiKeyInput" class="search-box" placeholder="Dán Gemini API Key" style="margin-bottom:1rem;">
+    <div style="display:flex; justify-content:flex-end; gap:0.5rem;">
+      <button class="btn-secondary" onclick="closeApiKeyModal()">Đóng</button>
+      <button class="btn-primary" onclick="saveApiKey()">Lưu Khóa</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL VINH DANH HOÀN THÀNH 200 LEVEL -->
+<div class="modal-overlay" id="celebrationModal">
+  <div class="glass cert-card">
+    <div style="font-size:3rem; margin-bottom:0.5rem;">🏆</div>
+    <h3 style="color:#fbbf24; margin-bottom:0.8rem;">CHỨNG CHỈ Y SINH HUYỀN THOẠI</h3>
+    <p style="color:#e2e8f0; font-size:0.95rem; line-height:1.6; margin-bottom:1.2rem;">
+      Vinh danh: <strong class="text-emerald" id="certPlayerName">Bác Sĩ Xuất Chúng</strong><br>
+      Đã xuất sắc hoàn thành trọn vẹn <strong>200 Level</strong> độc bản!<br>
+      Tổng điểm: <strong class="text-amber" id="certScore">0</strong>
+    </p>
+    <button class="btn-primary" onclick="startNewGamePlus()">🌟 KÍCH HOẠT 200 CÂU HOÀN TOÀN MỚI (NEW GAME+)</button>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   1. TOAST UI TRỰC TIẾP
+========================================================= */
+function showToast(text, isError = false) {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = 'toast-msg' + (isError ? ' error' : '');
+  toast.innerHTML = `<span>${isError ? '⚠️' : '✨'}</span> <span>${text}</span>`;
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.style.transition = 'all 0.3s ease'; toast.style.opacity = '0';
+    toast.style.transform = 'translateY(-15px) scale(0.9)';
+    setTimeout(() => toast.remove(), 300);
+  }, 3500);
+}
+
+/* =========================================================
+   2. BỘ GIẢI MÃ MARKDOWN & CÔNG THỨC DI TRUYỀN
+========================================================= */
+function formatMarkdown(txt) {
+  if (!txt) return "";
+  let out = txt;
+  out = out.replace(/^### (.*$)/gim, '<h3 style="color:#6ee7b7; margin:0.8rem 0 0.4rem;">$1</h3>');
+  out = out.replace(/^## (.*$)/gim, '<h2 style="color:#38bdf8; margin:1rem 0 0.5rem;">$1</h2>');
+  out = out.replace(/^# (.*$)/gim, '<h1 style="color:#fbbf24; margin:1.2rem 0 0.6rem;">$1</h1>');
+  out = out.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  out = out.replace(/\*(.*?)\*/g, '<em>$1</em>');
+  out = out.replace(/^\- (.*$)/gim, '<li style="margin-left:1.5rem; margin-bottom:0.25rem;">$1</li>');
+  out = out.replace(/\$(.*?)\$/g, '<code style="background:rgba(16,185,129,0.18); color:#6ee7b7; padding:2px 6px; border-radius:4px; font-family:monospace; font-weight:600;">$1</code>');
+  out = out.replace(/\n/g, '<br>');
+  return out;
+}
+
+/* =========================================================
+   3. CẤU HÌNH FIREBASE MỚI (bioquest-483d1) & API KEY 4 MỚI
+========================================================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyABeqogqGBiXSlbfMEZhn_j9kQwk5nr6g8",
+  authDomain: "bioquest-483d1.firebaseapp.com",
+  projectId: "bioquest-483d1",
+  storageBucket: "bioquest-483d1.firebasestorage.app",
+  messagingSenderId: "392156835436",
+  appId: "1:392156835436:web:892b0cac5478f419717249"
+};
+
+let auth = null;
+let db = null;
+let currentUser = null;
+
+try {
+  firebase.initializeApp(firebaseConfig);
+  auth = firebase.auth();
+  db = firebase.firestore();
+} catch(e) { console.warn('Firebase init:', e.message); }
+
+const DEFAULT_GEMINI_KEY = "AQ.Ab8RN6JdvkUGdmNDmkRD6CQMx9TpneHQgxy-xIrh55wi_hHvA";
+let savedKey = (localStorage.getItem('bioquest_gemini_key') || '').trim();
+// Nếu máy người dùng chưa có key hoặc đang lưu key cũ không hợp lệ thì tự động dùng DEFAULT_GEMINI_KEY
+if (!savedKey || savedKey.includes("FAFF2Djq8xZQ") || savedKey.includes("PKs6w") || savedKey.includes("OnpAb2yNip7xqHNIQ")) {
+  savedKey = DEFAULT_GEMINI_KEY;
+  try { localStorage.setItem('bioquest_gemini_key', DEFAULT_GEMINI_KEY); } catch(e) {}
+}
+let GEMINI_API_KEY = savedKey;
+
+/* =========================================================
+   4. HỆ THỐNG ÂM THANH 8-BIT
+========================================================= */
+let audioCtx = null;
+let soundEnabled = true;
+
+function initAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+}
+
+function playSound(type) {
+  if (!soundEnabled) return;
+  try {
+    initAudio();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    const now = audioCtx.currentTime;
+
+    if (type === 'correct') {
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(523.25, now);
+      osc.frequency.setValueAtTime(659.25, now + 0.08);
+      osc.frequency.setValueAtTime(783.99, now + 0.16);
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+      osc.start(now); osc.stop(now + 0.35);
+    } else if (type === 'wrong') {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(160, now);
+      osc.frequency.setValueAtTime(110, now + 0.12);
+      gain.gain.setValueAtTime(0.25, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+      osc.start(now); osc.stop(now + 0.3);
+    } else if (type === 'level') {
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(440, now);
+      osc.frequency.setValueAtTime(880, now + 0.1);
+      gain.gain.setValueAtTime(0.15, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+      osc.start(now); osc.stop(now + 0.4);
+    }
+  } catch(e) {}
+}
+
+document.getElementById('soundToggle').addEventListener('click', function() {
+  soundEnabled = !soundEnabled;
+  this.textContent = soundEnabled ? '🔊 SFX' : '🔇 SFX Tắt';
+  showToast(soundEnabled ? 'Đã bật âm thanh!' : 'Đã tắt âm thanh.');
+});
+
+/* =========================================================
+   5. FIREBASE AUTH & ĐỒNG BỘ TIẾN ĐỘ
+========================================================= */
+const authBtn = document.getElementById('authBtn');
+
+authBtn.addEventListener('click', async () => {
+  if (!auth) { showToast('Firebase chưa kết nối!', true); return; }
+  if (currentUser) {
+    if (confirm('Bạn có chắc chắn muốn đăng xuất?')) {
+      await auth.signOut();
+      showToast('Đã đăng xuất thành công.');
+    }
+  } else {
+    try {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      await auth.signInWithPopup(provider);
+      showToast('Đăng nhập Google thành công! Tiến độ đã được đồng bộ.');
+    } catch(err) {
+      if (err.code === 'auth/unauthorized-domain' || window.location.protocol === 'file:') {
+        showToast('Tên miền chưa được cấp phép trên Firebase Auth (bạn vẫn có thể dùng đầy đủ Chatbot và Luyện đề mà không cần đăng nhập!).', true);
+      } else {
+        showToast('Đăng nhập thất bại: ' + err.message, true);
+      }
+    }
+  }
+});
+
+if (auth) {
+  auth.onAuthStateChanged(async (user) => {
+    currentUser = user;
+    if (user) {
+      authBtn.textContent = '👤 ' + (user.displayName ? user.displayName.split(' ')[0] : 'Tài khoản');
+      await loadUserDataFromCloud(user.uid);
+    } else {
+      authBtn.textContent = '👤 Đăng nhập';
+    }
+  });
+}
+
+const LOCAL_PROGRESS_KEY = 'bioquest_progress_v1';
+
+function updateSyncBadge(statusText, isCloud = false) {
+  const badge = document.getElementById('syncStatusBadge');
+  if (!badge) return;
+  badge.textContent = statusText;
+  badge.style.color = isCloud ? '#6ee7b7' : '#fbbf24';
+  badge.style.borderColor = isCloud ? 'rgba(16,185,129,0.5)' : 'rgba(245,158,11,0.45)';
+}
+
+function saveLocalProgress() {
+  try {
+    const payload = {
+      gameLevel,
+      gameScore,
+      gameStreak,
+      gameHearts,
+      remain5050,
+      remainAdrenaline,
+      playerGender,
+      wrongCards: wrongCards.slice(0, 50),
+      updatedAt: Date.now()
+    };
+    localStorage.setItem(LOCAL_PROGRESS_KEY, JSON.stringify(payload));
+    localStorage.setItem('bioquest_wrong', JSON.stringify(wrongCards.slice(0, 50)));
+    if (!currentUser) {
+      updateSyncBadge('💾 Đã lưu trên máy', false);
+    }
+  } catch (e) {
+    console.warn('Lưu local:', e);
+  }
+}
+
+function loadLocalProgress() {
+  try {
+    const raw = localStorage.getItem(LOCAL_PROGRESS_KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    if (typeof data.gameLevel === 'number' && data.gameLevel >= 1) gameLevel = data.gameLevel;
+    if (typeof data.gameScore === 'number') gameScore = data.gameScore;
+    if (typeof data.gameStreak === 'number') gameStreak = data.gameStreak;
+    if (typeof data.gameHearts === 'number' && data.gameHearts >= 1) gameHearts = data.gameHearts;
+    if (typeof data.remain5050 === 'number') remain5050 = data.remain5050;
+    if (typeof data.remainAdrenaline === 'number') remainAdrenaline = data.remainAdrenaline;
+    if (data.playerGender === 'female' || data.playerGender === 'male') {
+      playerGender = data.playerGender;
+      const gBtn = document.getElementById('btnCharGirl');
+      const bBtn = document.getElementById('btnCharBoy');
+      if (gBtn) gBtn.classList.toggle('active', playerGender === 'female');
+      if (bBtn) bBtn.classList.toggle('active', playerGender === 'male');
+    }
+    if (Array.isArray(data.wrongCards) && data.wrongCards.length > 0) {
+      wrongCards = data.wrongCards;
+    }
+    updateSyncBadge('💾 Đã lưu trên máy', false);
+  } catch (e) {
+    console.warn('Đọc local:', e);
+  }
+}
+
+let cloudPermWarned = false;
+
+async function saveUserDataToCloud() {
+  // Luôn lưu ngay vào máy trước để đảm bảo không bao giờ mất tiến trình
+  saveLocalProgress();
+
+  if (!db || !currentUser) return;
+  try {
+    updateSyncBadge('⏳ Đang lưu Cloud...', true);
+    await db.collection('users').doc(currentUser.uid).set({
+      gameLevel,
+      gameScore,
+      gameStreak,
+      gameHearts,
+      remain5050,
+      remainAdrenaline,
+      playerGender,
+      wrongCards: wrongCards.slice(0, 50),
+      updatedAt: Date.now(),
+      lastActive: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+    updateSyncBadge('☁️ Đã đồng bộ Cloud', true);
+  } catch (e) {
+    console.error('Lưu cloud:', e);
+    updateSyncBadge('💾 Đã lưu máy (Cloud chờ quyền)', false);
+    if (!cloudPermWarned && (e.code === 'permission-denied' || (e.message && e.message.toLowerCase().includes('permission')))) {
+      cloudPermWarned = true;
+      showToast('Tiến trình đã lưu trên máy. Để đồng bộ đa thiết bị, hãy bật Rules cho Firestore trong Firebase Console!', true);
+    }
+  }
+}
+
+async function loadUserDataFromCloud(uid) {
+  if (!db) return;
+  try {
+    updateSyncBadge('⏳ Đang tải Cloud...', true);
+    const doc = await db.collection('users').doc(uid).get();
+    if (doc.exists) {
+      const data = doc.data();
+      // Hợp nhất thông minh: giữ tiến trình cao hơn giữa máy hiện tại và Cloud
+      if (typeof data.gameLevel === 'number' && data.gameLevel > gameLevel) {
+        gameLevel = data.gameLevel;
+        if (typeof data.gameScore === 'number') gameScore = data.gameScore;
+        if (typeof data.gameStreak === 'number') gameStreak = data.gameStreak;
+        if (typeof data.gameHearts === 'number' && data.gameHearts >= 1) gameHearts = data.gameHearts;
+        if (typeof data.remain5050 === 'number') remain5050 = data.remain5050;
+        if (typeof data.remainAdrenaline === 'number') remainAdrenaline = data.remainAdrenaline;
+      } else if (typeof data.gameScore === 'number' && data.gameScore > gameScore) {
+        gameScore = data.gameScore;
+      }
+
+      if (data.playerGender === 'female' || data.playerGender === 'male') {
+        playerGender = data.playerGender;
+        const gBtn = document.getElementById('btnCharGirl');
+        const bBtn = document.getElementById('btnCharBoy');
+        if (gBtn) gBtn.classList.toggle('active', playerGender === 'female');
+        if (bBtn) bBtn.classList.toggle('active', playerGender === 'male');
+      }
+
+      // Gộp thẻ câu sai từ cả Cloud và máy hiện tại (không trùng lặp)
+      if (Array.isArray(data.wrongCards)) {
+        data.wrongCards.forEach(cloudCard => {
+          if (cloudCard && cloudCard.q && !wrongCards.some(c => c.q === cloudCard.q)) {
+            wrongCards.push(cloudCard);
+          }
+        });
+        wrongCards = wrongCards.slice(0, 50);
+        renderFlashcards();
+      }
+
+      saveLocalProgress();
+      updateHud();
+      updateSyncBadge('☁️ Đã đồng bộ Cloud', true);
+      showToast('Đã đồng bộ tiến trình học tập từ Cloud!');
+    } else {
+      // Lần đầu đăng nhập trên tài khoản mới: đẩy ngay tiến trình hiện có trên máy lên Cloud
+      await saveUserDataToCloud();
+      showToast('Đã khởi tạo hồ sơ lưu trữ tiến trình trên Cloud!');
+    }
+  } catch (e) {
+    console.error('Tải cloud:', e);
+    updateSyncBadge('💾 Đã lưu trên máy', false);
+  }
+}
+
+/* =========================================================
+   6. CALL API GEMINI FLASH-LITE LATEST (TIMEOUT LINH HOẠT TỚI 120S)
+========================================================= */
+async function callGeminiAPI(contents, isChat = false, maxTokens = 800, isJson = false) {
+  const key = (GEMINI_API_KEY || DEFAULT_GEMINI_KEY).trim();
+  if (!key) throw new Error("Chưa có API Key! Hãy bấm nút 🔑 Key ở góc trên để nhập.");
+
+  const candidateModels = [
+    'gemini-flash-lite-latest',
+    'gemini-2.5-flash',
+    'gemini-2.0-flash'
+  ];
+
+  const genConfig = {
+    maxOutputTokens: isChat ? 1500 : maxTokens,
+    temperature: 0.25
+  };
+
+  if (isJson) {
+    genConfig.responseMimeType = "application/json";
+  }
+
+  const payload = {
+    contents: isChat ? contents : [{ parts: contents }],
+    generationConfig: genConfig
+  };
+
+  if (isChat) {
+    payload.systemInstruction = {
+      parts: [{ 
+        text: `Bạn là Dr. Coda 🐦, cố vấn Sinh học THPT Việt Nam (GDPT 2018).
+Yêu cầu phản hồi:
+1. Chiều sâu & Rõ ràng: Giải thích cụ thể bản chất sinh học, quy luật di truyền hoặc từng bước lập luận bài toán trong 1 - 2 đoạn văn mạch lạc, không cụt lủn và không lan man.
+2. Trình bày: Dùng gạch đầu dòng, in đậm các thuật ngữ (DNA, RNA, allele, codon...) hoặc kiểu gene quan trọng.
+3. Nếu người dùng gửi ảnh đề bài tập, hãy đọc chính xác dữ kiện từ ảnh, phân tích hướng giải và trình bày lời giải chi tiết từng bước, chốt đáp án rõ ràng.` 
+      }]
+    };
+  }
+
+  const hasInlineImg = isChat && JSON.stringify(contents).includes('inline_data');
+  const waitTimeout = isChat ? (hasInlineImg ? 45000 : 20000) : 120000;
+  let lastError = null;
+
+  for (const model of candidateModels) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), waitTimeout);
+
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      if (res.ok) {
+        const data = await res.json();
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (text) return text;
+        throw new Error("AI trả về nội dung trống.");
+      } else {
+        const errJson = await res.json().catch(() => ({}));
+        const msg = errJson.error?.message || `HTTP ${res.status}`;
+        lastError = new Error(msg);
+        // Nếu model này không khả dụng (404 / not found), thử model tiếp theo
+        if (res.status === 404 || msg.toLowerCase().includes('not found') || msg.toLowerCase().includes('no longer available')) {
+          continue;
+        }
+        // Nếu lỗi liên quan đến API Key bị chặn referrer/IP hoặc hết quota
+        if (res.status === 400 || res.status === 403) {
+          throw new Error(`API Key bị từ chối (${msg}). Hãy kiểm tra cài đặt hạn chế IP/Domain trên Google AI Studio hoặc bấm 🔑 Key để nhập khóa mới.`);
+        }
+        throw lastError;
+      }
+    } catch (err) {
+      clearTimeout(timeoutId);
+      if (err.name === 'AbortError') {
+        lastError = new Error(`Quá thời gian chờ (${waitTimeout / 1000}s), vui lòng thử lại!`);
+        continue;
+      }
+      if (err.message === 'Failed to fetch') {
+        throw new Error("Lỗi kết nối mạng hoặc trình duyệt chặn yêu cầu (hãy kiểm tra kết nối Internet và mở web qua hosting như GitHub Pages / Vercel thay vì file nội bộ).");
+      }
+      lastError = err;
+      if (model !== candidateModels[candidateModels.length - 1] && !err.message.includes('API Key bị từ chối')) {
+        continue;
+      }
+      throw err;
+    }
+  }
+
+  throw lastError || new Error("Không thể kết nối đến máy chủ AI.");
+}
+
+/* =========================================================
+   7. HỆ THỐNG 200 CÂU HOÀN TOÀN MỚI LIÊN TỤC (PIPELINE BUFFER)
+========================================================= */
+let gameLevel = 1;
+let gameScore = 0;
+let gameStreak = 0;
+let gameHearts = 3;
+let playerGender = 'female';
+let gameTimerInterval = null;
+let currentRemainingTime = 45;
+let remain5050 = 2;
+let remainAdrenaline = 2;
+let isAnswered = false;
+
+let sessionGameQuestions = [];
+let isPrefetching = false;
+
+const STAGE_CONFIG = [
+  { stage: 1, name: 'Học Sinh THPT', location: 'Lab Sinh Học Phổ Thông', minLv: 1, maxLv: 40, time: 30, topic: "Sinh học tế bào, trao đổi nước và khoáng ở thực vật, DNA nhân đôi" },
+  { stage: 2, name: 'Sinh Viên Y Khoa', location: 'Giảng Đường & Viện Giải Phẫu Y', minLv: 41, maxLv: 80, time: 35, topic: "Hệ tuần hoàn, tim mạch, điện thế hoạt động, phiên mã và dịch mã" },
+  { stage: 3, name: 'Bác Sĩ Tập Sự', location: 'Phòng Cấp Cứu Khẩn Cấp', minLv: 81, maxLv: 120, time: 40, topic: "Quy luật Menđen, hoán vị gen Morgan và đột biến cấu trúc NST" },
+  { stage: 4, name: 'Bác Sĩ Lành Nghề', location: 'Phòng Phẫu Thuật & Viện Sinh Học', minLv: 121, maxLv: 160, time: 45, topic: "Di truyền quần thể Hardy-Weinberg, phả hệ y học và cắt nối luân phiên exon" },
+  { stage: 5, name: 'Bác Sĩ Huyền Thoại', location: 'Viện Y Sinh & Di Truyền Cao Cấp', minLv: 161, maxLv: 200, time: 50, topic: "Tiến hóa phân tử, chọn lọc tự nhiên, hệ sinh thái chuyên sâu và công nghệ tế bào" }
+];
+
+function getCurrentStageInfo(lv) {
+  return STAGE_CONFIG.find(s => lv >= s.minLv && lv <= s.maxLv) || STAGE_CONFIG[4];
+}
+
+function setGender(gender) {
+  playerGender = gender;
+  document.getElementById('btnCharGirl').classList.toggle('active', gender === 'female');
+  document.getElementById('btnCharBoy').classList.toggle('active', gender === 'male');
+  saveUserDataToCloud();
+  showToast(`Đã chuyển nhân vật: ${gender === 'female' ? 'Nữ Bác Sĩ' : 'Nam Bác Sĩ'}`);
+}
+
+const SEED_QUESTIONS = [
+  { q: "Ở thực vật trên cạn, nước và ion khoáng từ đất đi vào mạch gỗ qua tế bào nội bì bị chặn lại bởi cấu trúc nào để kiểm soát?", opts: ["Đai Caspary", "Không bào trung tâm", "Cầu sinh chất", "Khí khổng"], ans: 0, exp: "Đai Caspary thấm suberin ngăn cản nước đi theo con đường gian bào, buộc phải chuyển qua tế bào chất để chọn lọc." },
+  { q: "Phân tử DNA vùng nhân của vi khuẩn E. coli có tỉ lệ (A + T)/(G + C) = 1/4. Tỉ lệ nucleotide loại A chiếm bao nhiêu %?", opts: ["10%", "20%", "25%", "40%"], ans: 0, exp: "Theo NTBS: A = T, G = X => A/G = 1/4 => G = 4A. Mà A + G = 50% => 5A = 50% => A = 10%." },
+  { q: "Một gen cấu trúc ở sinh vật nhân sơ dài 510 nm, có A = 600. Tổng số liên kết hydro của gen là:", opts: ["3900", "3600", "4200", "3000"], ans: 0, exp: "N = (5100 / 3.4) * 2 = 3000. A = 600 => G = 900. H = 2A + 3G = 2*600 + 3*900 = 3900." },
+  { q: "Ở ruồi giấm, gen w quy định mắt đỏ trội so với w- quy định mắt trắng nằm trên NST X không có alen trên Y. Kiểu gen con đực mắt đỏ là:", opts: ["X^(w+)Y", "X^(w-)Y", "X^(w+)X^(w+)", "X^(w-)X^(w-)"], ans: 0, exp: "Ruồi đực mang cặp NST giới tính XY nên kiểu gen mắt đỏ là X^(w+)Y." },
+  { q: "Tỉ lệ phân li kiểu hình 1:1:1:1 trong phép lai phân tích cá thể dị hợp 2 cặp gen chứng minh điều gì?", opts: ["2 gen phân li độc lập hoặc liên kết hoàn toàn (dị hợp chéo)", "Chắc chắn có hoán vị gen 50%", "2 gen luôn nằm trên 1 NST", "Tương tác gen bổ trợ"], ans: 0, exp: "Cả phân li độc lập (AaBb x aabb) và liên kết gen hoàn toàn (Ab/aB x ab/ab) đều có thể cho tỉ lệ 1:1:1:1." }
+];
+
+async function prefetchNextQuestions(targetStage) {
+  if (isPrefetching) return;
+  isPrefetching = true;
+  try {
+    const prompt = `Bạn là chuyên gia khảo thí Sinh học THPT Việt Nam (GDPT 2018). Hãy tạo 10 câu hỏi trắc nghiệm mới 100% không trùng lặp cho chuyên đề: "${targetStage.topic}".
+Yêu cầu bắt buộc: Trả về DUY NHẤT một chuỗi JSON hợp lệ không bọc markdown, theo format:
+[
+  {"q": "nội dung câu hỏi", "opts": ["đáp án đúng", "đáp án sai 1", "đáp án sai 2", "đáp án sai 3"], "ans": 0, "exp": "giải thích ngắn gọn"}
+]`;
+    const res = await callGeminiAPI([{ text: prompt }], false, 1200, true);
+    const clean = res.replace(/```json/g, '').replace(/```/g, '').trim();
+    const parsed = JSON.parse(clean);
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      sessionGameQuestions.push(...parsed);
+    }
+  } catch(e) {
+    console.warn("Lỗi nạp đệm câu hỏi:", e.message);
+  } finally {
+    isPrefetching = false;
+  }
+}
+
+async function nextQuestion() {
+  if (gameHearts <= 0) {
+    if (confirm('Bệnh nhân nguy kịch! Bạn đã hết 3 tim. Bạn có muốn hồi sinh tại chặng này không?')) {
+      gameHearts = 3; updateHud();
+    } else { return; }
+  }
+
+  if (gameLevel > 200) {
+    showCelebrationModal();
+    return;
+  }
+
+  isAnswered = false;
+  document.getElementById('gameActionBtn').classList.add('hidden');
+  document.getElementById('gameExplain').style.display = 'none';
+
+  const stage = getCurrentStageInfo(gameLevel);
+  updateHud();
+
+  const currentIndex = gameLevel - 1;
+  if (sessionGameQuestions.length <= currentIndex + 3) {
+    prefetchNextQuestions(stage);
+  }
+
+  let currentQ = sessionGameQuestions[currentIndex];
+  if (!currentQ) {
+    currentQ = SEED_QUESTIONS[currentIndex % SEED_QUESTIONS.length];
+  }
+
+  const shuffledOpts = currentQ.opts.map((text, idx) => ({ text, isCorrect: (idx === currentQ.ans) }));
+  for (let i = shuffledOpts.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffledOpts[i], shuffledOpts[j]] = [shuffledOpts[j], shuffledOpts[i]];
+  }
+
+  document.getElementById('gameQuestion').textContent = `Câu ${gameLevel}: ${currentQ.q}`;
+  const optBox = document.getElementById('gameOptions');
+  optBox.innerHTML = '';
+
+  shuffledOpts.forEach((o, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'p-btn';
+    btn.innerHTML = `<span class="p-key">${String.fromCharCode(65 + i)}</span> <span>${o.text}</span>`;
+    btn.onclick = () => answerQuestion(btn, o.isCorrect, currentQ);
+    optBox.appendChild(btn);
+  });
+
+  clearInterval(gameTimerInterval);
+  currentRemainingTime = stage.time;
+  const timerEl = document.getElementById('hudTimer');
+  timerEl.textContent = currentRemainingTime + 's';
+
+  gameTimerInterval = setInterval(() => {
+    currentRemainingTime--;
+    timerEl.textContent = currentRemainingTime + 's';
+    if (currentRemainingTime <= 0) {
+      clearInterval(gameTimerInterval);
+      timeoutQuestion(currentQ);
+    }
+  }, 1000);
+}
+
+function answerQuestion(selectedBtn, isCorrect, qObj) {
+  if (isAnswered) return;
+  isAnswered = true;
+  clearInterval(gameTimerInterval);
+
+  document.querySelectorAll('#gameOptions .p-btn').forEach(btn => btn.disabled = true);
+  const expEl = document.getElementById('gameExplain');
+  expEl.style.display = 'block';
+
+  if (isCorrect) {
+    selectedBtn.classList.add('correct');
+    playSound('correct');
+    gameScore += 10 + Math.floor(currentRemainingTime / 2);
+    gameStreak++;
+    expEl.innerHTML = `<strong class="text-emerald">✓ CHẨN ĐOÁN CHÍNH XÁC!</strong><br>${qObj.exp}`;
+    showToast(`Chính xác! +${10 + Math.floor(currentRemainingTime / 2)} Điểm`);
+  } else {
+    selectedBtn.classList.add('wrong');
+    playSound('wrong');
+    gameStreak = 0;
+    gameHearts--;
+    expEl.innerHTML = `<strong class="text-rose">✗ CHẨN ĐOÁN CHƯA ĐÚNG!</strong><br>${qObj.exp}`;
+    recordWrongCard(qObj.q, qObj.opts[qObj.ans], qObj.exp);
+    showToast('Chẩn đoán chưa đúng! Đã lưu vào Thẻ sai.', true);
+  }
+
+  gameLevel++;
+  updateHud();
+  saveUserDataToCloud();
+
+  const actionBtn = document.getElementById('gameActionBtn');
+  actionBtn.classList.remove('hidden');
+  actionBtn.textContent = (gameLevel > 200) ? '🏆 HOÀN THÀNH 200 LEVEL' : 'Ca Tiếp Theo ➔';
+}
+
+function timeoutQuestion(qObj) {
+  if (isAnswered) return;
+  isAnswered = true;
+  playSound('wrong');
+  gameHearts--;
+  gameStreak = 0;
+  updateHud();
+  const expEl = document.getElementById('gameExplain');
+  expEl.style.display = 'block';
+  expEl.innerHTML = `<strong class="text-rose">⏰ HẾT THỜI GIAN CẤP CỨU!</strong><br>${qObj.exp}`;
+  recordWrongCard(qObj.q, qObj.opts[qObj.ans], qObj.exp);
+  saveUserDataToCloud();
+  showToast('Hết thời gian cấp cứu!', true);
+
+  const actionBtn = document.getElementById('gameActionBtn');
+  actionBtn.classList.remove('hidden');
+  actionBtn.textContent = 'Ca Tiếp Theo ➔';
+}
+
+function use5050() {
+  if (remain5050 <= 0 || isAnswered) return;
+  remain5050--;
+  updateHud();
+  saveUserDataToCloud();
+  const btns = Array.from(document.querySelectorAll('#gameOptions .p-btn'));
+  let eliminated = 0;
+  btns.forEach(btn => {
+    if (eliminated < 2 && !btn.onclick.toString().includes('isCorrect=true')) {
+      btn.classList.add('eliminated'); eliminated++;
+    }
+  });
+  showToast('Đã kích hoạt trợ giúp 50:50!');
+}
+
+function useAdrenaline() {
+  if (remainAdrenaline <= 0 || isAnswered) return;
+  remainAdrenaline--;
+  currentRemainingTime += 15;
+  document.getElementById('hudTimer').textContent = currentRemainingTime + 's';
+  updateHud();
+  saveUserDataToCloud();
+  showToast('Đã tiêm Adrenaline: +15 giây hồi sức!');
+}
+
+function showCelebrationModal() {
+  triggerConfetti();
+  document.getElementById('certPlayerName').textContent = currentUser ? (currentUser.displayName || 'Bác Sĩ Xuất Chúng') : 'Bác Sĩ Xuất Chúng';
+  document.getElementById('certScore').textContent = gameScore;
+  document.getElementById('celebrationModal').classList.add('open');
+}
+
+function startNewGamePlus() {
+  document.getElementById('celebrationModal').classList.remove('open');
+  showToast('Đang khởi tạo chu kỳ 200 câu hỏi hoàn toàn mới bằng Gemini Flash-Lite!');
+  gameLevel = 1; gameHearts = 3; remain5050 = 2; remainAdrenaline = 2;
+  sessionGameQuestions = [];
+  prefetchNextQuestions(STAGE_CONFIG[0]);
+  updateHud(); saveUserDataToCloud(); nextQuestion();
+}
+
+/* =========================================================
+   8. ĐỒ HỌA PIXEL ART HD CHUẨN ẢNH MẪU
+========================================================= */
+const pCanvas = document.getElementById('pixelStageCanvas');
+const pCtx = pCanvas.getContext('2d');
+let pTimer = 0;
+let waterCycle = 0;
+
+let cloudDrift = 0;
+
+function drawPixelCloud(cx, cy, scale) {
+  pCtx.fillStyle = "rgba(255, 255, 255, 0.92)";
+  pCtx.fillRect(cx, cy, 36 * scale, 10 * scale);
+  pCtx.fillRect(cx + 6 * scale, cy - 6 * scale, 22 * scale, 8 * scale);
+  pCtx.fillRect(cx + 14 * scale, cy - 10 * scale, 12 * scale, 6 * scale);
+  pCtx.fillStyle = "#e0f2fe";
+  pCtx.fillRect(cx + 2 * scale, cy + 8 * scale, 32 * scale, 3 * scale);
+}
+
+function drawMountainRange() {
+  // Far misty mountain peaks
+  pCtx.fillStyle = "#64748b";
+  pCtx.beginPath();
+  pCtx.moveTo(0, 155);
+  pCtx.lineTo(75, 82);
+  pCtx.lineTo(155, 138);
+  pCtx.lineTo(245, 68);
+  pCtx.lineTo(340, 140);
+  pCtx.lineTo(435, 76);
+  pCtx.lineTo(540, 145);
+  pCtx.lineTo(540, 160);
+  pCtx.lineTo(0, 160);
+  pCtx.closePath();
+  pCtx.fill();
+
+  // Snow / sunlight highlights on far peaks
+  pCtx.fillStyle = "#f8fafc";
+  pCtx.beginPath();
+  pCtx.moveTo(75, 82); pCtx.lineTo(58, 100); pCtx.lineTo(72, 97); pCtx.lineTo(84, 103); pCtx.closePath(); pCtx.fill();
+  pCtx.beginPath();
+  pCtx.moveTo(245, 68); pCtx.lineTo(224, 90); pCtx.lineTo(242, 86); pCtx.lineTo(256, 92); pCtx.closePath(); pCtx.fill();
+  pCtx.beginPath();
+  pCtx.moveTo(435, 76); pCtx.lineTo(417, 96); pCtx.lineTo(433, 92); pCtx.lineTo(448, 98); pCtx.closePath(); pCtx.fill();
+
+  // Closer lush green-blue mountain ridge
+  pCtx.fillStyle = "#1e6058";
+  pCtx.beginPath();
+  pCtx.moveTo(0, 158);
+  pCtx.lineTo(45, 114);
+  pCtx.lineTo(125, 145);
+  pCtx.lineTo(195, 102);
+  pCtx.lineTo(295, 148);
+  pCtx.lineTo(380, 106);
+  pCtx.lineTo(485, 146);
+  pCtx.lineTo(540, 118);
+  pCtx.lineTo(540, 160);
+  pCtx.lineTo(0, 160);
+  pCtx.closePath();
+  pCtx.fill();
+
+  // Foreground emerald grassy foothills
+  pCtx.fillStyle = "#15803d";
+  pCtx.fillRect(0, 144, pCanvas.width, 14);
+  pCtx.fillStyle = "#22c55e";
+  for (let gx = 0; gx < pCanvas.width; gx += 16) {
+    pCtx.fillRect(gx, 142, 10, 4);
+  }
+}
+
+function drawPixelArtScene() {
+  pTimer += 0.04;
+  waterCycle = (waterCycle + 0.4) % 60;
+  cloudDrift = (cloudDrift + 0.18) % (pCanvas.width + 120);
+  pCtx.imageSmoothingEnabled = false;
+
+  // Bright blue sky gradient bands (pixel art style)
+  pCtx.fillStyle = "#38bdf8";
+  pCtx.fillRect(0, 0, pCanvas.width, 65);
+  pCtx.fillStyle = "#7dd3fc";
+  pCtx.fillRect(0, 65, pCanvas.width, 55);
+  pCtx.fillStyle = "#bae6fd";
+  pCtx.fillRect(0, 120, pCanvas.width, 40);
+
+  // Warm pixel sun
+  pCtx.fillStyle = "rgba(254, 240, 138, 0.35)";
+  pCtx.beginPath(); pCtx.arc(475, 42, 24, 0, Math.PI * 2); pCtx.fill();
+  pCtx.fillStyle = "#fde047";
+  pCtx.beginPath(); pCtx.arc(475, 42, 15, 0, Math.PI * 2); pCtx.fill();
+
+  // Drifting fluffy white clouds
+  drawPixelCloud(((60 + cloudDrift) % (pCanvas.width + 100)) - 60, 34, 1.15);
+  drawPixelCloud(((260 + cloudDrift * 0.7) % (pCanvas.width + 100)) - 60, 52, 0.95);
+  drawPixelCloud(((420 + cloudDrift * 0.5) % (pCanvas.width + 100)) - 60, 28, 1.0);
+
+  // Scenic layered mountains
+  drawMountainRange();
+
+  pCtx.fillStyle = "#38bdf8";
+  pCtx.fillRect(0, 150, pCanvas.width, 230);
+  pCtx.fillStyle = "#0284c7";
+  pCtx.fillRect(0, 190, pCanvas.width, 190);
+  pCtx.fillStyle = "#0369a1";
+  pCtx.fillRect(0, 270, pCanvas.width, 110);
+
+  pCtx.fillStyle = "#bae6fd";
+  for (let y = 160; y < pCanvas.height; y += 18) {
+    let xOffset = ((y * 3) + waterCycle) % 80;
+    for (let x = -80 + xOffset; x < pCanvas.width; x += 75) {
+      pCtx.fillRect(x, y, 30, 3);
+      if ((x + y) % 2 === 0) {
+        pCtx.fillStyle = "#ffffff";
+        pCtx.fillRect(x + 10, y + 1, 8, 2);
+        pCtx.fillStyle = "#bae6fd";
+      }
+    }
+  }
+
+  drawLilyPad(110, 290, 24);
+  drawLilyPad(150, 320, 28);
+  drawLilyPad(240, 305, 26);
+  drawLilyPad(410, 275, 28);
+  drawLilyPad(450, 310, 22);
+
+  pCtx.fillStyle = "#475569";
+  pCtx.fillRect(50, 142, 26, 16);
+  pCtx.fillRect(75, 150, 22, 14);
+  pCtx.fillRect(450, 145, 30, 16);
+
+  const bX = 110;
+  const bY = 145;
+  for (let i = 0; i < 20; i++) {
+    const px = bX + i * 16;
+    const py = bY + i * 7.5;
+    pCtx.fillStyle = "rgba(12, 74, 96, 0.65)";
+    pCtx.fillRect(px - 6, py + 38, 42, 14);
+    pCtx.fillStyle = (i % 2 === 0) ? "#d97706" : "#b45309";
+    pCtx.fillRect(px, py, 42, 38);
+    pCtx.fillStyle = "#78350f";
+    pCtx.fillRect(px, py + 34, 42, 4);
+    pCtx.fillRect(px + 38, py, 4, 38);
+  }
+
+  pCtx.fillStyle = "#451a03";
+  pCtx.fillRect(115, 185, 10, 42);
+  pCtx.fillRect(240, 245, 10, 45);
+  pCtx.fillRect(380, 305, 10, 40);
+
+  drawPixelBlackCat(350, 230);
+
+  if (playerGender === 'female') {
+    drawDoctorGirlChibi(250, 150);
+  } else {
+    drawDoctorBoyChibi(250, 150);
+  }
+
+  requestAnimationFrame(drawPixelArtScene);
+}
+
+function drawLilyPad(cx, cy, r) {
+  pCtx.fillStyle = "#15803d";
+  pCtx.beginPath(); pCtx.arc(cx, cy, r, 0, Math.PI * 1.85); pCtx.lineTo(cx, cy); pCtx.fill();
+  pCtx.fillStyle = "#4ade80";
+  pCtx.beginPath(); pCtx.arc(cx - 2, cy - 2, r * 0.7, 0, Math.PI * 1.85); pCtx.lineTo(cx - 2, cy - 2); pCtx.fill();
+}
+
+function drawPixelBlackCat(cx, cy) {
+  pCtx.fillStyle = "#0f172a";
+  pCtx.fillRect(cx, cy, 22, 22);
+  pCtx.fillRect(cx + 4, cy - 10, 16, 12);
+  pCtx.fillRect(cx + 4, cy - 15, 5, 6);
+  pCtx.fillRect(cx + 15, cy - 15, 5, 6);
+  pCtx.fillStyle = "#fbbf24";
+  pCtx.fillRect(cx + 7, cy - 7, 4, 5);
+  pCtx.fillRect(cx + 14, cy - 7, 4, 5);
+  pCtx.fillStyle = "#000";
+  pCtx.fillRect(cx + 9, cy - 6, 2, 3);
+  pCtx.fillRect(cx + 16, cy - 6, 2, 3);
+  const tailSwing = Math.sin(pTimer * 4.5) * 4;
+  pCtx.fillStyle = "#0f172a";
+  pCtx.fillRect(cx + 22, cy + 10 + tailSwing, 10, 4);
+}
+
+function drawDoctorGirlChibi(bx, by) {
+  const bounce = (Math.floor(pTimer * 3.5) % 2 === 0) ? 0 : 2;
+  const y = by - bounce;
+  const s = 2.4;
+  pCtx.fillStyle = "#ffffff";
+  pCtx.fillRect(bx + 6*s, y + 21*s, 13*s, 12*s);
+  pCtx.fillStyle = "#06b6d4";
+  pCtx.fillRect(bx + 9*s, y + 21*s, 7*s, 4*s);
+  pCtx.fillStyle = "#1e293b";
+  pCtx.fillRect(bx + 8*s, y + 33*s, 4*s, 5*s);
+  pCtx.fillRect(bx + 13*s, y + 33*s, 4*s, 5*s);
+  pCtx.fillStyle = "#10b981";
+  pCtx.fillRect(bx + 15*s, y + 23*s, 6*s, 8*s);
+  pCtx.fillStyle = "#ecfdf5";
+  pCtx.fillRect(bx + 16*s, y + 24*s, 4*s, 6*s);
+  pCtx.fillStyle = "#fef3c7";
+  pCtx.fillRect(bx + 4*s, y + 7*s, 17*s, 14*s);
+  pCtx.fillStyle = "#451a03";
+  pCtx.fillRect(bx + 6*s, y + 12*s, 4*s, 5*s);
+  pCtx.fillRect(bx + 15*s, y + 12*s, 4*s, 5*s);
+  pCtx.fillStyle = "#ffffff";
+  pCtx.fillRect(bx + 7*s, y + 13*s, 2*s, 2*s);
+  pCtx.fillRect(bx + 16*s, y + 13*s, 2*s, 2*s);
+  pCtx.fillStyle = "#f472b6";
+  pCtx.fillRect(bx + 5*s, y + 16*s, 2*s, 2*s);
+  pCtx.fillRect(bx + 18*s, y + 16*s, 2*s, 2*s);
+  pCtx.fillStyle = "#78350f";
+  pCtx.fillRect(bx + 3*s, y + 3*s, 19*s, 7*s);
+  pCtx.fillRect(bx + 2*s, y + 7*s, 3*s, 11*s);
+  pCtx.fillRect(bx + 20*s, y + 7*s, 3*s, 8*s);
+  pCtx.fillStyle = "#dc2626";
+  pCtx.fillRect(bx - 2*s, y + 5*s, 5*s, 5*s);
+  pCtx.fillStyle = "#78350f";
+  pCtx.fillRect(bx - 5*s, y + 7*s, 5*s, 14*s);
+}
+
+function drawDoctorBoyChibi(bx, by) {
+  const bounce = (Math.floor(pTimer * 3.5) % 2 === 0) ? 0 : 2;
+  const y = by - bounce;
+  const s = 2.4;
+  pCtx.fillStyle = "#ffffff";
+  pCtx.fillRect(bx + 6*s, y + 21*s, 14*s, 13*s);
+  pCtx.fillStyle = "#0284c7";
+  pCtx.fillRect(bx + 10*s, y + 21*s, 6*s, 6*s);
+  pCtx.fillStyle = "#0f172a";
+  pCtx.fillRect(bx + 8*s, y + 34*s, 4*s, 5*s);
+  pCtx.fillRect(bx + 14*s, y + 34*s, 4*s, 5*s);
+  pCtx.fillStyle = "#fef3c7";
+  pCtx.fillRect(bx + 5*s, y + 7*s, 16*s, 14*s);
+  pCtx.fillStyle = "#334155";
+  pCtx.strokeRect(bx + 6*s, y + 11*s, 5*s, 5*s);
+  pCtx.strokeRect(bx + 15*s, y + 11*s, 5*s, 5*s);
+  pCtx.fillRect(bx + 11*s, y + 13*s, 4*s, 1*s);
+  pCtx.fillStyle = "#0f172a";
+  pCtx.fillRect(bx + 7*s, y + 12*s, 3*s, 3*s);
+  pCtx.fillRect(bx + 16*s, y + 12*s, 3*s, 3*s);
+  pCtx.fillStyle = "#1e293b";
+  pCtx.fillRect(bx + 4*s, y + 3*s, 18*s, 7*s);
+  pCtx.fillRect(bx + 3*s, y + 7*s, 3*s, 8*s);
+  pCtx.fillRect(bx + 20*s, y + 7*s, 3*s, 8*s);
+  pCtx.fillRect(bx + 7*s, y + 8*s, 5*s, 3*s);
+}
+
+function updateHud() {
+  const stage = getCurrentStageInfo(gameLevel);
+  // Sửa tiếng Việt không dấu hoặc viết hoa rõ ràng, không dùng font vỡ
+  document.getElementById('hudLevelTitle').textContent = `LEVEL ${gameLevel} - ${stage.name.toUpperCase()}`;
+  document.getElementById('hudStageTitle').textContent = `Chặng ${stage.stage}: ${stage.location}`;
+  document.getElementById('hudScore').textContent = `Score: ${gameScore}`;
+  document.getElementById('hudStreak').textContent = `🔥 ${gameStreak}`;
+
+  let heartsStr = '';
+  for (let i = 0; i < 3; i++) heartsStr += (i < gameHearts) ? '❤️' : '🖤';
+  document.getElementById('hudHearts').textContent = heartsStr;
+
+  document.getElementById('life5050').innerHTML = `50:50<br>(x${remain5050})`;
+  document.getElementById('life5050').disabled = (remain5050 <= 0);
+  document.getElementById('lifeTime').innerHTML = `+15s<br>(x${remainAdrenaline})`;
+  document.getElementById('lifeTime').disabled = (remainAdrenaline <= 0);
+}
+
+/* =========================================================
+   9. ĐỀ THI CHUẨN THPT QG 2026 (ĐỦ 28 CÂU - ĐẾM NGƯỢC 50 PHÚT)
+   Cấu trúc chuẩn Bộ GD&ĐT GDPT 2018:
+   - Phần I: 18 câu trắc nghiệm nhiều phương án (4.5 điểm)
+   - Phần II: 4 câu đúng/sai (16 ý a,b,c,d) (4.0 điểm)
+   - Phần III: 6 câu trả lời ngắn điền số (1.5 điểm)
+   Tổng cộng: 28 câu = 10.0 điểm
+========================================================= */
+let currentExamSeed = 430;
+let activeExamMCQ = [];
+let activeExamTF = [];
+let activeExamShort = [];
+let thptTimerSeconds = 50 * 60;
+let thptTimerInterval = null;
+let isThptSubmitted = false;
+let isThptRunning = false;
+
+function resetThptTimer() {
+  clearInterval(thptTimerInterval);
+  thptTimerInterval = null;
+  isThptRunning = false;
+  thptTimerSeconds = 50 * 60;
+  isThptSubmitted = false;
+  updateThptTimerDisplay();
+  const btn = document.getElementById('btnStartThptTimer');
+  if (btn) btn.innerHTML = '▶️ Bắt đầu làm bài';
+}
+
+function toggleThptTimer() {
+  if (isThptSubmitted) {
+    showToast('Bài thi đã nộp! Hãy bấm "Đổi đề mới" hoặc "Làm lại đề này".');
+    return;
+  }
+  const btn = document.getElementById('btnStartThptTimer');
+  if (isThptRunning) {
+    clearInterval(thptTimerInterval);
+    isThptRunning = false;
+    if (btn) btn.innerHTML = '▶️ Tiếp tục làm bài';
+    showToast('Đã tạm dừng đồng hồ đếm ngược.');
+  } else {
+    isThptRunning = true;
+    if (btn) btn.innerHTML = '⏸️ Tạm dừng';
+    showToast('⏱️ Bắt đầu tính giờ làm bài (50 phút)!');
+    thptTimerInterval = setInterval(() => {
+      thptTimerSeconds--;
+      updateThptTimerDisplay();
+      if (thptTimerSeconds <= 0) {
+        clearInterval(thptTimerInterval);
+        isThptRunning = false;
+        showToast('⏰ Hết giờ làm bài thi THPT Quốc Gia! Tự động nộp bài.', true);
+        submitExam();
+      }
+    }, 1000);
+  }
+}
+
+function updateThptTimerDisplay() {
+  const m = Math.floor(thptTimerSeconds / 60);
+  const s = thptTimerSeconds % 60;
+  const str = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  const el = document.getElementById('thptTimerDisplay');
+  if (el) el.textContent = str;
+}
+
+// Ngân hàng 18 câu MCQ chuẩn phân hóa cao đề thi THPT Quốc Gia GDPT 2018
+const OFFICIAL_28_MCQ = [
+  { id:1, q:"Trong một thí nghiệm tách chiết DNA từ tế bào gan chuột, người ta sử dụng dung dịch tẩy rửa SDS (Sodium Dodecyl Sulfate) và enzyme protease trước khi kết tủa bằng ethanol lạnh. Vai trò trực tiếp của việc bổ sung protease trong quy trình này là:", opts:["Thủy phân các protein histone và enzyme nội bào liên kết với phân tử DNA", "Phá vỡ liên kết hydro giữa hai mạch đơn của chuỗi xoắn kép DNA", "Cắt đặc hiệu phân tử DNA thành các đoạn ngắn có kích thước đồng đều", "Trung hòa điện tích âm của nhóm phosphate trên khung đường - phosphate"], ans:0, sol:"SDS phá vỡ màng tế bào và màng nhân, còn protease phân giải protein histone bao quanh DNA và các enzyme nuclease gây hại, giúp thu được DNA tinh sạch." },
+  { id:2, q:"Khi nghiên cứu sự vận chuyển nước qua rễ ở cây hướng dương (Helianthus annuus), người ta xử lý bộ rễ bằng chất ức chế hô hấp tế bào (cyanide) ở nồng độ thấp. Hiện tượng nào sau đây sẽ xảy ra rõ rệt nhất sau 30 phút?", opts:["Áp suất rễ giảm mạnh và hiện tượng ứ giọt ở mép lá biến mất do ngừng hấp thu chủ động ion khoáng", "Tốc độ thoát hơi nước qua cutin tăng đột biến gấp 3 lần", "Dòng mạch rây đảo ngược chiều vận chuyển từ rễ lên chồi ngọn", "Đai Caspary hòa tan hoàn toàn làm nước tràn tự do vào mạch gỗ"], ans:0, sol:"Chất ức chế hô hấp làm thiếu hụt ATP cho quá trình hấp thu chủ động ion khoáng vào mạch gỗ, làm giảm gradient áp suất thẩm thấu nên áp suất rễ giảm mạnh và ngừng ứ giọt." },
+  { id:3, q:"Ở vi khuẩn E. coli kiểu dại, một chủng đột biến mang đột biến mất chức năng hoàn toàn ở vùng promoter của gene điều hòa lacI (P_lacI⁻). Trong môi trường KHÔNG có lactose và KHÔNG có glucose, trạng thái hoạt động của operon Lac ở chủng đột biến này là:", opts:["Các gene cấu trúc lacZ, lacY, lacA phiên mã liên tục ở mức cao", "Operon Lac bị ức chế hoàn toàn do protein ức chế bám chặt vào vùng O", "Chỉ có gene lacZ được phiên mã còn lacY và lacA không phiên mã", "RNA polymerase không thể bám vào vùng promoter của operon Lac"], ans:0, sol:"Đột biến hỏng promoter của lacI khiến gene lacI không được phiên mã, không tạo ra protein ức chế -> vùng O luôn trống -> operon Lac phiên mã liên tục ngay cả khi không có lactose." },
+  { id:4, q:"Một loài thực vật giao phấn có bộ NST 2n = 20. Khi quan sát tiêu bản tế bào sinh dưỡng của một thể đột biến phát hiện có 21 NST, trong đó có một nhóm gồm 3 NST tương đồng hoàn toàn về hình thái và kích thước. Cơ chế chủ yếu hình thành thể đột biến này là:", opts:["Sự không phân li của một cặp NST tương đồng ở một bên bố hoặc mẹ trong giảm phân, tạo giao tử (n + 1) kết hợp với giao tử bình thường (n)", "Sự không phân li của toàn bộ bộ NST 2n trong lần nguyên phân đầu tiên của hợp tử", "Đột biến lặp đoạn lớn trên một NST tạo thêm một NST mới độc lập", "Thụ tinh giữa hai giao tử đột biến đều mang (n + 1) NST"], ans:0, sol:"Thể ba nhiễm (2n + 1 = 21) hình thành do giao tử lệch bội (n + 1 = 11) kết hợp với giao tử đơn bội bình thường (n = 10)." },
+  { id:5, q:"Một đột biến thay thế một cặp nucleotide ở giữa vùng mã hóa của một gene cấu trúc làm xuất hiện bộ ba 5'-UGA-3' trên bản sao mRNA. Chuỗi polypeptide do gene đột biến này tổng hợp so với chuỗi bình thường sẽ:", opts:["Ngắn hơn và thường bị mất hoặc suy giảm chức năng sinh học", "Dài hơn bình thường do ribosome đọc vượt qua tín hiệu kết thúc", "Giữ nguyên số lượng amino acid nhưng thay đổi 1 amino acid ở vị trí đột biến", "Không thay đổi cấu trúc bậc một do tính thoái hóa của mã di truyền"], ans:0, sol:"5'-UGA-3' là codon kết thúc (stop codon). Đột biến vô nghĩa làm dịch mã dừng sớm nên chuỗi polypeptide ngắn hơn bình thường." },
+  { id:6, q:"Ở người, xét một gene nằm trên vùng không tương đồng của NST X có 2 allele: allele trội quy định đông máu bình thường, allele lặn gây bệnh máu khó đông (hemophilia). Một người phụ nữ không mắc bệnh có em trai ruột mắc bệnh máu khó đông, biết bố mẹ của họ đều có kiểu hình bình thường. Xác suất người phụ nữ này mang allele gây bệnh ở trạng thái dị hợp tử là:", opts:["50%", "25%", "75%", "100%"], ans:0, sol:"Bố mẹ bình thường sinh con trai bị bệnh (XʰY) => kiểu gene bố mẹ là XᴴY × XᴴXʰ. Người con gái bình thường có xác suất nhận Xʰ từ mẹ là 1/2 = 50%." },
+  { id:7, q:"Ở một loài thực vật, tính trạng màu sắc hoa do 2 cặp gene không allele (A, a và B, b) phân li độc lập cùng quy định theo kiểu tương tác bổ sung: kiểu gene có đồng thời cả hai allele trội A và B cho hoa đỏ thẫm; các kiểu gene còn lại đều cho hoa trắng. Cho cây dị hợp 2 cặp gene tự thụ phấn thu được F₁. Trong số các cây hoa trắng ở F₁, tỉ lệ cây có kiểu gene thuần chủng chiếm:", opts:["3/7", "4/9", "3/16", "1/4"], ans:0, sol:"F₁ có 9 A-B- (đỏ) : 7 hoa trắng (3 A-bb + 3 aaB- + 1 aabb). Trong 7 phần hoa trắng có 3 phần thuần chủng (1 AAbb + 1 aaBB + 1 aabb) => tỉ lệ = 3/7." },
+  { id:8, q:"Một quần thể thực vật tự thụ phấn bắt buộc có cấu trúc di truyền ở thế hệ xuất phát (P) là: 0.3 AA : 0.4 Aa : 0.3 aa. Biết các cá thể mang kiểu gene aa có sức sống kém nên chỉ có 50% số hạt aa nảy mầm và sinh trưởng thành cây trưởng thành ở mỗi thế hệ, các kiểu gene khác nảy mầm 100%. Ở thế hệ F₁ trưởng thành, tỉ lệ cây mang kiểu gene dị hợp tử Aa chiếm:", opts:["1/4 (25.00%)", "2/9 (≈ 22.22%)", "1/5 (20.00%)", "4/19 (≈ 21.05%)"], ans:0, sol:"Sau tự thụ phấn từ P tạo hợp tử F₁: AA = 0.3 + 0.1 = 0.4; Aa = 0.2; aa = 0.3 + 0.1 = 0.4. Do aa chỉ sống 50% => còn 0.2 aa. Tổng quần thể F₁ sống sót = 0.4 + 0.2 + 0.2 = 0.8. Tỉ lệ Aa = 0.2 / 0.8 = 1/4 = 25% (đáp án 1/4)." },
+  { id:9, q:"Trong công nghệ DNA tái tổ hợp, người ta sử dụng cùng một loại enzyme giới hạn (restriction endonuclease) EcoRI để cắt đoạn DNA mang gene insulin của người và plasmid thể truyền pBR322. Mục đích chính của việc dùng chung một loại enzyme cắt giới hạn là:", opts:["Tạo ra các đầu dính (sticky ends) có trình tự nucleotide bổ sung khớp nhau giữa gene cần chuyển và plasmid", "Giúp enzyme DNA polymerase nhân đôi plasmid nhanh hơn trong tế bào chủ", "Loại bỏ hoàn toàn các đoạn intron ra khỏi gene insulin của người", "Ngăn cản plasmid tự đóng vòng trở lại trước khi gắn gene ngoại lai"], ans:0, sol:"Cắt bằng cùng một enzyme giới hạn tạo ra hai đầu dính có trình tự nucleotide bổ sung đặc hiệu, giúp enzyme DNA ligase nối gene cần chuyển vào vector dễ dàng." },
+  { id:10, q:"Khi nghiên cứu sự tiến hóa của nhóm chim sẻ Darwin trên quần đảo Galápagos, các nhà khoa học nhận thấy trong những năm hạn hán kéo dài, hạt cây trở nên to và rất cứng; kết quả là kích thước mỏ trung bình của quần thể chim sẻ Geospiza fortis tăng lên rõ rệt chỉ sau vài thế hệ. Cơ chế tiến hóa giải thích trực tiếp hiện tượng này là:", opts:["Chọn lọc định hướng (directional selection) ưu tiên giữ lại các cá thể có mỏ to khỏe phá được hạt cứng", "Đột biến định hướng do thức ăn cứng kích thích gene quy định kích thước mỏ biến đổi", "Giao phối không ngẫu nhiên giữa các chim trống và chim mái có kích thước mỏ đối lập", "Hiệu ứng thắt cổ chai làm giảm kích thước quần thể một cách ngẫu nhiên"], ans:0, sol:"Môi trường thay đổi theo một hướng (hạt cứng hơn) tạo áp lực chọn lọc định hướng, giữ lại những cá thể có biến dị mỏ to khỏe sống sót và sinh sản nhiều hơn." },
+  { id:11, q:"Trong một quần xã rừng mưa nhiệt đới, loài cây gỗ lớn tán cao (Dipterocarpus) chiếm số lượng cá thể lớn, sinh khối vượt trội và chi phối mạnh mẽ đến tiểu khí hậu cũng như sự phân bố của các loài thực vật tầng dưới. Trong sinh thái học, loài cây này được xếp vào nhóm:", opts:["Loài ưu thế (dominant species)", "Loài đặc trưng (characteristic species)", "Loài ngẫu nhiên (accidental species)", "Loài ngoại lai xâm lấn (invasive species)"], ans:0, sol:"Loài ưu thế là loài đóng vai trò quan trọng trong quần xã nhờ số lượng cá thể nhiều, sinh khối lớn hoặc hoạt động mạnh, quyết định chiều hướng phát triển của quần xã." },
+  { id:12, q:"Sơ đồ nào sau đây mô tả đúng con đường truyền năng lượng chính trong hệ sinh thái đồng cỏ tự nhiên?", opts:["Năng lượng ánh sáng mặt trời → Sinh vật sản xuất → Sinh vật tiêu thụ các bậc → Nhiệt năng tỏa ra môi trường", "Năng lượng hóa học trong mùn bã → Sinh vật phân giải → Sinh vật sản xuất → Ánh sáng mặt trời", "Sinh vật tiêu thụ bậc 1 → Sinh vật sản xuất → Sinh vật tiêu thụ bậc 2 → Sinh vật phân giải", "Năng lượng ánh sáng → Sinh vật phân giải → Sinh vật tiêu thụ → Sinh vật sản xuất"], ans:0, sol:"Dòng năng lượng trong hệ sinh thái đi theo một chiều từ mặt trời qua sinh vật sản xuất, qua các bậc dinh dưỡng và thất thoát dần dưới dạng nhiệt." },
+  { id:13, q:"Một đoạn mạch mã gốc của một gene cấu trúc ở sinh vật nhân sơ có trình tự nucleotide: 3'-TAC GGT CAA TCA ACT-5'. Khi đoạn gene này phiên mã tạo mRNA và dịch mã bình thường, số amino acid có trong chuỗi polypeptide hoàn chỉnh (đã cắt bỏ amino acid mở đầu) là:", opts:["3 amino acid", "4 amino acid", "5 amino acid", "2 amino acid"], ans:0, sol:"mRNA tương ứng: 5'-AUG CCA GUU AGU UGA-3'. Bộ ba thứ 5 là UGA (kết thúc) => có 4 codon mã hóa amino acid. Cắt bỏ amino acid mở đầu (AUG) còn lại 3 amino acid." },
+  { id:14, q:"Trong một thí nghiệm đo cường độ quang hợp của hai loài thực vật C₃ (cây đậu tương) và C₄ (cây ngô) ở các nồng độ CO₂ khác nhau trong điều kiện ánh sáng bão hòa, điểm bù CO₂ của cây ngô thấp hơn rõ rệt so với cây đậu tương vì:", opts:["Cây ngô có enzyme PEP-carboxylase với ái lực rất cao đối với CO₂ ngay cả ở nồng độ thấp", "Cây ngô không có khí khổng ở mặt dưới lá nên giữ được CO₂ nội bào", "Cây ngô thực hiện chu trình Calvin ngay trong tế bào mô giậu", "Cây ngô có hô hấp sáng diễn ra mạnh hơn cây đậu tương"], ans:0, sol:"Thực vật C₄ có enzyme PEP-carboxylase ái lực cao với CO₂ nên cố định CO₂ hiệu quả ngay khi nồng độ CO₂ rất thấp, dẫn đến điểm bù CO₂ thấp." },
+  { id:15, q:"Hiện tượng nào sau đây là ví dụ điển hình cho cơ chế cách li sau hợp tử trong quá trình hình thành loài mới?", opts:["Lừa cái giao phối với ngựa đực sinh ra con la khỏe mạnh nhưng bất thụ hoàn toàn", "Hai loài cóc sống cùng khu vực địa lí nhưng sinh sản vào hai mùa khác nhau trong năm", "Các loài chim thiên đường có vũ điệu ve vãn khác biệt nên không giao phối với nhau", "Cấu tạo cơ quan sinh sản của hai loài côn trùng không tương khớp về mặt cơ học"], ans:0, sol:"Con la là con lai khác loài được tạo thành sau thụ tinh nhưng bất thụ (không tạo được giao tử bình thường) -> cách li sau hợp tử." },
+  { id:16, q:"Khi nói về diễn thế sinh thái thứ sinh (secondary succession) xảy ra trên một vùng đất nông nghiệp bị bỏ hoang sau canh tác, nhận định nào sau đây là ĐÚNG?", opts:["Khởi đầu từ môi trường đã có sẵn một quần xã sinh vật từng sống và lớp đất giàu mùn, diễn ra nhanh hơn diễn thế nguyên sinh", "Khởi đầu từ vùng đất trống trơn chưa từng có sinh vật sinh sống và hoàn toàn không có đất", "Luôn dẫn đến sự suy thoái hoàn toàn của hệ sinh thái thành sa mạc khô cằn", "Độ đa dạng loài và lưới thức ăn ngày càng đơn giản hóa qua các giai đoạn"], ans:0, sol:"Diễn thế thứ sinh xuất hiện ở môi trường đã có quần xã sinh vật trước đó (đất bỏ hoang, rừng sau cháy), có sẵn mầm mống sinh vật và đất nên diễn ra nhanh hơn." },
+  { id:17, q:"Ở người, khi cơ thể bị mất nhiều máu do chấn thương, huyết áp động mạch giảm đột ngột. Phản xạ sinh lí nào sau đây của hệ tim mạch và thần kinh - thể dịch sẽ xảy ra để duy trì huyết áp ổn định?", opts:["Tăng nhịp tim, tăng lực co bóp cơ tim và co mạch máu ngoại vi kết hợp tăng tiết hormone ADH, aldosterone", "Giảm nhịp tim, dãn toàn bộ mạch máu ngoại vi và tăng bài tiết nước tiểu qua thận", "Ức chế trung khu vận mạch ở hành não làm giảm lưu lượng tim", "Tăng tiết insulin để chuyển hóa glycogen thành glucose trong máu"], ans:0, sol:"Thụ thể áp lực ở cung động mạch chủ và xoang động mạch cảnh báo về hành não kích thích giao cảm: tăng nhịp tim, co mạch và tiết ADH/aldosterone giữ nước để nâng huyết áp." },
+  { id:18, q:"Trong quá trình nhân đôi DNA ở sinh vật nhân thực, các đoạn Okazaki trên mạch ra chậm (lagging strand) được tổng hợp theo chiều nào và được nối liền với nhau nhờ enzyme nào?", opts:["Tổng hợp theo chiều 5' → 3' và được nối liền bởi enzyme DNA ligase", "Tổng hợp theo chiều 3' → 5' và được nối liền bởi enzyme helicase", "Tổng hợp theo chiều 5' → 3' và được nối liền bởi enzyme RNA polymerase", "Tổng hợp theo chiều 3' → 5' và được nối liền bởi enzyme topoisomerase"], ans:0, sol:"Mọi enzyme DNA polymerase chỉ tổng hợp mạch mới theo chiều 5' → 3'. Sau khi đoạn mồi RNA được thay bằng DNA, enzyme DNA ligase nối các đoạn Okazaki thành mạch liên tục." }
+];
+
+// 4 câu Đúng/Sai (16 ý a,b,c,d) chuẩn cấu trúc Phần II GDPT 2018
+const OFFICIAL_28_TF = [
+  {
+    id: 1,
+    lead: "Một nhóm nghiên cứu phân tích cấu trúc gene mã hóa protein X ở tế bào biểu mô người (dài 612 nm, gồm 4 exon và 3 intron). Trên mạch bổ sung (mạch không làm khuôn) của gene này có tỉ lệ A : T : G : C = 1 : 2 : 3 : 4. Khi tách chiết mRNA trưởng thành từ tế bào biểu mô (mô A) và tế bào gan (mô B), người ta nhận thấy ở mô A giữ lại cả 4 exon, trong khi ở mô B xảy ra hiện tượng cắt nối luân phiên (alternative splicing) loại bỏ hoàn toàn exon 3 dài 180 cặp nucleotide.",
+    items: [
+      { text: "a) Tổng số nucleotide trên mạch khuôn của gene X là 1800 nucleotide và số nucleotide loại Guanine (G) trên mạch khuôn là 720.", correct: true, sol: "N = (6120 / 3.4) * 2 = 3600 nu => mỗi mạch có 1800 nu. Mạch bổ sung có C chiếm 4/(1+2+3+4) = 40% của 1800 = 720 => G trên mạch khuôn bổ sung với C nên G_khuôn = 720." },
+      { text: "b) Số liên kết hydrogen của gene X là 4680 liên kết.", correct: false, sol: "Trên mạch bổ sung: A = 180, T = 360, G = 540, C = 720 => cả gene có A = T = 540; G = C = 1260. H = 2(540) + 3(1260) = 1080 + 3780 = 4860 (nhận định 4680 là sai)." },
+      { text: "c) Chuỗi polypeptide hoàn chỉnh tổng hợp ở tế bào gan (mô B) ngắn hơn chuỗi polypeptide ở tế bào biểu mô (mô A) đúng 60 amino acid.", correct: true, sol: "Exon 3 dài 180 cặp nucleotide tương ứng 180 ribonucleotide trên mRNA = 180 / 3 = 60 bộ ba mã hóa => ngắn hơn 60 amino acid." },
+      { text: "d) Hiện tượng tạo ra hai loại protein khác nhau ở mô A và mô B từ cùng một gene X chứng minh tế bào gan đã xảy ra đột biến mất đoạn DNA.", correct: false, sol: "Đây là cơ chế điều hòa sau phiên mã (cắt nối luân phiên exon - alternative splicing), trình tự DNA của gene X ở cả hai mô hoàn toàn giống nhau." }
+    ]
+  },
+  {
+    id: 2,
+    lead: "Ở một loài côn trùng, xét 3 cặp gene phân li độc lập quy định 3 tính trạng khác nhau, trội hoàn toàn: A (thân đen) > a (thân xám); B (mắt đỏ) > b (mắt trắng); D (cánh nguyên) > d (cánh xẻ). Thực hiện phép lai P: Cá thể cái (♀) dị hợp tử cả 3 cặp gene lai với cá thể đực (♂) chưa biết kiểu gene, thu được đời con F₁ có tỉ lệ phân li kiểu hình chung là: 37.5% thân đen, mắt đỏ, cánh nguyên : 12.5% thân đen, mắt trắng, cánh nguyên : 18.75% thân xám, mắt đỏ, cánh nguyên : 6.25% thân xám, mắt trắng, cánh nguyên : 12.5% thân đen, mắt đỏ, cánh xẻ : 12.5% thân đen, mắt trắng, cánh xẻ (các kiểu hình khác bằng 0).",
+    items: [
+      { text: "a) Ở đời F₁, tính trạng màu thân phân li theo tỉ lệ 3 thân đen : 1 thân xám.", correct: true, sol: "Tổng thân đen (A-) = 37.5% + 12.5% + 12.5% + 12.5% = 75%; thân xám (aa) = 18.75% + 6.25% = 25% => tỉ lệ 3 : 1." },
+      { text: "b) Cặp gene quy định màu mắt (B, b) và cặp gene quy định hình dạng cánh (D, d) cùng nằm trên vùng không tương đồng của NST giới tính X.", correct: false, sol: "Nếu cả B và D cùng nằm trên NST X thì tỉ lệ phân li sẽ phụ thuộc giới tính và không cho tổ hợp (3:1)(3:1) độc lập như trên; thực tế Dd × Dd hoặc liên kết trên X chỉ 1 cặp." },
+      { text: "c) Kiểu gene của cá thể đực P mang allele lặn ở cả 3 locus (a, b, d).", correct: true, sol: "F₁ xuất hiện kiểu hình lặn (aa, bb, dd) nên cá thể đực P phải truyền các giao tử mang allele lặn a, b, d." },
+      { text: "d) Trong tổng số cá thể mang kiểu hình trội về cả 3 tính trạng (A-B-D-) ở F₁, tỉ lệ cá thể thuần chủng chiếm 1/9.", correct: false, sol: "Vì có gene liên kết giới tính hoặc lai phân tích một cặp nên không xuất hiện đồng hợp tử trội cả 3 cặp gene (0%)." }
+    ]
+  },
+  {
+    id: 3,
+    lead: "Sơ đồ phả hệ một dòng họ theo dõi đồng thời nhóm máu hệ ABO (do 3 allele Iᴬ, Iᴮ, Iᴼ quy định) và bệnh xơ nang (Cystic Fibrosis - do một gene lặn trên NST thường quy định). Cặp vợ chồng thế hệ II là II.3 (nhóm máu A, bình thường) và II.4 (nhóm máu B, bình thường) sinh được con gái III.1 có nhóm máu O và mắc bệnh xơ nang. Bên phía gia đình chồng II.5 có nhóm máu AB và không mang allele gây bệnh xơ nang.",
+    items: [
+      { text: "a) Kiểu gene chính xác của người II.3 là IᴬIᴼAa và của người II.4 là IᴮIᴼAa.", correct: true, sol: "Con III.1 nhóm máu O (IᴼIᴼ) và bị bệnh (aa) nên cả bố II.3 (máu A) và mẹ II.4 (máu B) đều phải dị hợp tử cả hai locus: IᴬIᴼAa và IᴮIᴼAa." },
+      { text: "b) Xác suất để cặp vợ chồng II.3 và II.4 sinh người con tiếp theo là con trai có nhóm máu AB và không mắc bệnh xơ nang là 9.375%.", correct: true, sol: "Xác suất con trai = 1/2; xác suất máu AB (IᴬIᴮ) = 1/4; xác suất không mắc bệnh (A-) = 3/4. Tỉ lệ = (1/2) * (1/4) * (3/4) = 3/32 = 9.375%." },
+      { text: "c) Người con gái III.1 lớn lên kết hôn với người chồng II.5 (nhóm máu AB, không mang allele bệnh). Cặp vợ chồng này có thể sinh con mang nhóm máu O.", correct: false, sol: "III.1 có kiểu gene IᴼIᴼ, chồng có kiểu gene IᴬIᴮ => đời con chỉ có thể có nhóm máu A (IᴬIᴼ) hoặc nhóm máu B (IᴮIᴼ), không thể sinh con nhóm máu O (0%)." },
+      { text: "d) Tất cả các con sinh ra từ cặp vợ chồng III.1 và II.5 đều có kiểu hình bình thường không mắc bệnh xơ nang.", correct: true, sol: "III.1 (aa) × chồng (AA) => 100% đời con có kiểu gene dị hợp tử Aa, biểu hiện kiểu hình bình thường." }
+    ]
+  },
+  {
+    id: 4,
+    lead: "Một nhóm nhà sinh thái học tiến hành thực nghiệm bổ sung dinh dưỡng (Nitơ và Phốt pho) vào hai hồ nước ngọt tách biệt có điều kiện ban đầu tương đương: Hồ 1 không thả cá ăn thịt đỉnh chuỗi; Hồ 2 thả bổ sung loài cá vược miệng rộng (ăn cá nhỏ). Sau 12 tháng, ở Hồ 1 xuất hiện hiện tượng tảo lam nở hoa dày đặc làm giảm mạnh lượng oxy hòa tan tầng đáy, trong khi nước ở Hồ 2 vẫn trong xanh và ổn định.",
+    items: [
+      { text: "a) Ở Hồ 2, loài cá vược miệng rộng đóng vai trò kiểm soát từ trên xuống (top-down control) thông qua hiệu ứng thác dinh dưỡng (trophic cascade).", correct: true, sol: "Cá vược ăn cá nhỏ -> động vật phù du (giáp xác) phát triển mạnh -> ăn tảo phù du -> giữ nước hồ trong sạch." },
+      { text: "b) Hiện tượng tảo nở hoa ở Hồ 1 là biểu hiện của sự phú dưỡng (eutrophication) do dư thừa khoáng chất N, P kết hợp thiếu sinh vật tiêu thụ bậc cao.", correct: true, sol: "Dư thừa N, P kích thích tảo sinh trưởng bùng nổ; khi tảo chết đi, vi khuẩn phân giải tiêu thụ cạn kiệt O₂ hòa tan." },
+      { text: "c) Nếu tiếp tục duy trì tình trạng thiếu oxy tầng đáy ở Hồ 1, đa dạng sinh học của quần xã sinh vật đáy sẽ suy giảm nghiêm trọng.", correct: true, sol: "Thiếu oxy hòa tan gây chết hàng loạt động vật không xương sống và cá tầng đáy, làm giảm độ đa dạng loài." },
+      { text: "d) Giải pháp sinh học bền vững nhất để phục hồi Hồ 1 là phun thuốc diệt tảo hóa học liều cao định kì mỗi tháng.", correct: false, sol: "Thuốc diệt tảo hóa học gây độc tích lũy cho toàn bộ hệ sinh thái; biện pháp bền vững là kiểm soát nguồn thải N, P và phục hồi lưới thức ăn tự nhiên." }
+    ]
+  }
+];
+
+// 6 câu Trả lời ngắn điền số chuẩn Phần III GDPT 2018
+const OFFICIAL_28_SHORT = [
+  { id:1, q:"Một phân tử DNA vùng nhân của vi khuẩn E. coli chỉ chứa đồng vị phóng xạ ¹⁵N có chiều dài 510 nm và tổng số liên kết hydrogen là 3900. Chuyển vi khuẩn này sang nuôi cấy trong môi trường chỉ chứa ¹⁴N để DNA nhân đôi liên tiếp 3 thế hệ. Tổng số nucleotide loại Guanine (G) môi trường cung cấp cho quá trình nhân đôi nói trên là bao nhiêu?", ans:6300, sol:"N = (5100 / 3.4) * 2 = 3000. H = 2A + 3G = 3900 => G = 3900 - 3000 = 900. Sau 3 lần nhân đôi, G môi trường cung cấp = G * (2³ - 1) = 900 * 7 = 6300." },
+  { id:2, q:"Ở một loài thực vật, xét 2 cặp gene phân li độc lập: A quy định hoa đỏ trội hoàn toàn so với a hoa trắng; B quy định quả tròn trội hoàn toàn so với b quả dài. Cho cây dị hợp tử về cả 2 cặp gene (AaBb) giao phấn với cây hoa đỏ, quả dài dị hợp tử (Aabb) thu được F₁. Lấy ngẫu nhiên 2 cây hoa đỏ, quả tròn ở F₁, xác suất để cả 2 cây được chọn đều có kiểu gene dị hợp tử về cả 2 cặp gene là bao nhiêu %? (Làm tròn đến 2 chữ số thập phân)", ans:44.44, sol:"AaBb × Aabb -> cây hoa đỏ quả tròn (A-Bb) gồm 1/3 AABb và 2/3 AaBb. Xác suất 1 cây là AaBb = 2/3. Lấy ngẫu nhiên 2 cây đều là AaBb = (2/3)² = 4/9 ≈ 44.44% (nếu chọn 1 cây AaBb và 1 cây AABb là 2*(2/3)*(1/3)=4/9; ở đây (2/3)^2 = 44.44%)." },
+  { id:3, q:"Một gene phân mảnh ở sinh vật nhân thực có vùng mã hóa gồm 4 exon và 3 intron. Tổng chiều dài các exon là 1224 Å, tổng chiều dài các intron là 816 Å. Phân tử mRNA trưởng thành được tạo ra từ gene này tiến hành dịch mã với 6 ribosome cùng trượt qua một lần. Tổng số amino acid môi trường cần cung cấp cho quá trình dịch mã trên (tính cả amino acid mở đầu) là bao nhiêu?", ans:714, sol:"Chiều dài mRNA trưởng thành = chiều dài các exon = 1224 Å => số ribonucleotide = 1224 / 3.4 = 360 nu => số codon = 360 / 3 = 120 bộ ba. Mỗi ribosome tổng hợp chuỗi cần 120 - 1 = 119 amino acid. Với 6 ribosome: 119 * 6 = 714 amino acid." },
+  { id:4, q:"Một quần thể động vật ngẫu phối có cấu trúc di truyền ban đầu ở P: 0.36 AA : 0.48 Aa : 0.16 aa. Do biến đổi khí hậu, toàn bộ các cá thể có kiểu gene aa bị chết trước tuổi sinh sản ở thế hệ P; các cá thể còn lại ngẫu phối tự do tạo ra F₁. Ở thế hệ F₁, tỉ lệ cá thể mang kiểu gene đồng hợp tử trội AA chiếm bao nhiêu %? (Làm tròn đến 2 chữ số thập phân)", ans:51.02, sol:"Cá thể sống sót ở P: 0.36 AA : 0.48 Aa => chia lại tỉ lệ: 3/7 AA : 4/7 Aa. Tần số allele p(A) = 3/7 + 2/7 = 5/7. Khi ngẫu phối tạo F₁, tỉ lệ AA = p² = (5/7)² = 25/49 ≈ 51.02%." },
+  { id:5, q:"Một vận động viên chạy marathon khi đang thi đấu có nhịp tim tăng lên 150 nhịp/phút và thể tích tâm thu đạt 110 mL/nhát bóp. Lưu lượng tim của vận động viên này trong trạng thái thi đấu là bao nhiêu lít/phút?", ans:16.5, sol:"Lưu lượng tim = Nhịp tim × Thể tích tâm thu = 150 × 110 = 16500 mL/phút = 16.5 lít/phút." },
+  { id:6, q:"Ở một loài thực vật lưỡng bội (2n = 16), xét hai cặp gene A, a và B, b cùng nằm trên một cặp NST thường cách nhau 24 cM. Cho cây dị hợp tử đều (AB/ab) tự thụ phấn, biết hoán vị gene xảy ra ở cả quá trình phát sinh giao tử đực và giao tử cái với tần số bằng nhau. Tỉ lệ kiểu hình đồng hợp lặn (ab/ab) thu được ở đời con F₁ là bao nhiêu %? (Làm tròn đến 2 chữ số thập phân)", ans:14.44, sol:"f = 24% => giao tử liên kết AB = ab = (100% - 24%)/2 = 38% = 0.38. Tỉ lệ kiểu gene ab/ab = 0.38 × 0.38 = 0.1444 = 14.44%." }
+];
+
+function switchExamSub(tab) {
+  const btnThpt = document.getElementById('subBtnThpt');
+  const btnMatrix = document.getElementById('subBtnMatrix');
+  const viewThpt = document.getElementById('subViewThpt');
+  const viewMatrix = document.getElementById('subViewMatrix');
+
+  if (btnThpt) btnThpt.classList.toggle('active', tab === 'thpt');
+  if (btnMatrix) btnMatrix.classList.toggle('active', tab === 'matrix');
+  if (viewThpt) viewThpt.classList.toggle('hidden', tab !== 'thpt');
+  if (viewMatrix) viewMatrix.classList.toggle('hidden', tab !== 'matrix');
+}
+
+
+function shuffleMcqOptions(qObj) {
+  if (!qObj || !Array.isArray(qObj.opts) || qObj.opts.length < 2) return qObj;
+  const correctText = qObj.opts[qObj.ans];
+  const indexed = qObj.opts.map((optText, i) => ({ optText, isCorrect: i === qObj.ans }));
+  for (let i = indexed.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [indexed[i], indexed[j]] = [indexed[j], indexed[i]];
+  }
+  const newAns = indexed.findIndex(item => item.isCorrect);
+  return {
+    ...qObj,
+    opts: indexed.map(item => item.optText),
+    ans: newAns >= 0 ? newAns : 0
+  };
+}
+
+async function generateNewExam() {
+  const btn = document.getElementById('btnThptReload');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '⚡ AI đang biên soạn đề mới 28 câu...';
+  }
+
+  currentExamSeed = Math.floor(Math.random() * 899) + 100;
+  const wrap = document.getElementById('examContainer');
+
+  wrap.innerHTML = `
+    <div class="glass" style="padding: 3rem 1.5rem; text-align: center;">
+      <div style="font-size: 2.8rem; margin-bottom: 0.8rem;">🧬</div>
+      <h3 class="text-emerald" style="margin-bottom: 0.5rem;">Đang khởi tạo bộ đề THPT Quốc Gia mới hoàn toàn (28 câu phân hóa)...</h3>
+      <p style="color: #94a3b8; font-size: 0.92rem;">Thiết kế bối cảnh thí nghiệm, phả hệ và bài toán mới chuẩn cấu trúc GDPT 2018 (không trùng lặp đề cũ). Vui lòng chờ 15–40 giây...</p>
+    </div>
+  `;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  const prompt = `Bạn là chuyên gia ra đề thi Tốt nghiệp THPT môn Sinh học của Bộ Giáo dục & Đào tạo Việt Nam (Chương trình GDPT 2018, cấu trúc 28 câu).
+Hãy biên soạn MỘT ĐỀ THI MỚI HOÀN TOÀN (mã đề ${currentExamSeed}), tuyệt đối KHÔNG chép lại câu hỏi có sẵn trong đề minh họa hay đề cũ, sáng tạo bối cảnh thực nghiệm, số liệu và tình huống mới có độ khó tương đương và thách đố như đề thi thật:
+- mcq: Đúng 18 câu trắc nghiệm nhiều phương án lựa chọn (id từ 1 đến 18, mỗi câu có q, opts mảng 4 đáp án, ans chỉ số đáp án đúng phân bố đều ngẫu nhiên giữa 0, 1, 2, 3 (không dồn vào 0), sol lời giải chi tiết). Bao phủ đầy đủ: Sinh học phân tử (DNA, RNA, operon Lac, công nghệ gene), Di truyền tế bào (nguyên phân, giảm phân, đột biến NST), Quy luật di truyền (Mendel, tương tác gene, liên kết & hoán vị gene, di truyền giới tính), Di truyền quần thể, Tiến hóa, Sinh thái học, Sinh lí thực vật & động vật.
+- tf: Đúng 4 câu trắc nghiệm Đúng/Sai (id từ 1 đến 4, mỗi câu gồm lead đoạn dẫn tình huống thí nghiệm/phả hệ/sinh thái dài phân hóa cao và items mảng đúng 4 ý a, b, c, d, mỗi ý có text, correct boolean true/false, sol giải thích).
+- short: Đúng 6 câu trắc nghiệm trả lời ngắn dạng điền số tính toán (id từ 1 đến 6, mỗi câu có q, ans là số thực chính xác, sol cách giải ngắn gọn).
+Trả về JSON thuần hợp lệ đúng schema.`;
+
+  try {
+    const rawRes = await callGeminiAPI([{ text: prompt }], false, 8192, true);
+    const cleanJson = rawRes.replace(/```json/g, '').replace(/```/g, '').trim();
+    const parsed = JSON.parse(cleanJson);
+
+    if (Array.isArray(parsed.mcq) && parsed.mcq.length >= 10 && Array.isArray(parsed.tf) && Array.isArray(parsed.short)) {
+      activeExamMCQ = parsed.mcq.map(shuffleMcqOptions);
+      activeExamTF = parsed.tf;
+      activeExamShort = parsed.short;
+      renderExam();
+      resetThptTimer();
+      showToast(`Đã tạo đề mới hoàn toàn (${activeExamMCQ.length + activeExamTF.length + activeExamShort.length} câu)! Bấm "Bắt đầu làm bài" khi sẵn sàng.`);
+    } else {
+      throw new Error("Dữ liệu AI chưa đủ cấu trúc 28 câu");
+    }
+  } catch (err) {
+    console.warn("Chuyển sang bộ đề phân hóa cao dự phòng:", err.message);
+    activeExamMCQ = [...OFFICIAL_28_MCQ].sort(() => 0.5 - Math.random()).map(shuffleMcqOptions);
+    activeExamTF = [...OFFICIAL_28_TF].sort(() => 0.5 - Math.random());
+    activeExamShort = [...OFFICIAL_28_SHORT].sort(() => 0.5 - Math.random());
+    renderExam();
+    resetThptTimer();
+    showToast('Đã nạp đề phân hóa cao mới! Bấm "Bắt đầu làm bài" để bắt đầu tính giờ.');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '🔄 Đổi đề mới (AI)';
+    }
+  }
+}
+
+function renderExam() {
+  if (activeExamMCQ.length === 0) {
+    activeExamMCQ = OFFICIAL_28_MCQ;
+    activeExamTF = OFFICIAL_28_TF;
+    activeExamShort = OFFICIAL_28_SHORT;
+  }
+
+  document.getElementById('examCodeTag').textContent = `MÃ ĐỀ: 0${currentExamSeed} (ĐỦ 28 CÂU)`;
+  const wrap = document.getElementById('examContainer');
+  let html = '';
+
+  // PHẦN I: 18 CÂU MCQ
+  html += `<h3 class="text-emerald" style="margin:1rem 0 0.6rem; font-size:1.15rem;">PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn (18 câu - 4.5 điểm)</h3>`;
+  activeExamMCQ.forEach((q, i) => {
+    html += `
+      <div class="glass question-item" id="box_mcq_${q.id}">
+        <h4>Câu ${i+1}. ${q.q}</h4>
+        <div class="mcq-opts">
+          ${q.opts.map((opt, oIdx) => `
+            <label><input type="radio" name="mcq_${q.id}" value="${oIdx}"> <strong>${String.fromCharCode(65+oIdx)}.</strong> ${opt}</label>
+          `).join('')}
+        </div>
+        <div class="exam-solution-box" id="sol_mcq_${q.id}">💡 <strong>Lời giải:</strong> ${q.sol}</div>
+      </div>
+    `;
+  });
+
+  // PHẦN II: 4 CÂU ĐÚNG SAI (16 Ý)
+  html += `<h3 class="text-amber" style="margin:1.8rem 0 0.6rem; font-size:1.15rem;">PHẦN II. Câu trắc nghiệm đúng sai (4 câu 16 ý - 4.0 điểm)</h3>`;
+  activeExamTF.forEach((q, i) => {
+    html += `
+      <div class="glass question-item" id="box_tf_${q.id}">
+        <h4>Câu ${i+1}. ${q.lead}</h4>
+        ${q.items.map((it, itIdx) => `
+          <div class="tf-row">
+            <div class="tf-text">${it.text}</div>
+            <div class="tf-choices">
+              <label><input type="radio" name="tf_${q.id}_${itIdx}" value="true"> Đúng</label>
+              <label><input type="radio" name="tf_${q.id}_${itIdx}" value="false"> Sai</label>
+            </div>
+          </div>
+          <div class="exam-solution-box" id="sol_tf_${q.id}_${itIdx}">💡 ${it.sol}</div>
+        `).join('')}
+      </div>
+    `;
+  });
+
+  // PHẦN III: 6 CÂU ĐIỀN SỐ NGẮN
+  html += `<h3 class="text-cyan" style="margin:1.8rem 0 0.6rem; font-size:1.15rem;">PHẦN III. Câu trắc nghiệm trả lời ngắn (6 câu - 1.5 điểm)</h3>`;
+  activeExamShort.forEach((q, i) => {
+    html += `
+      <div class="glass question-item" id="box_short_${q.id}">
+        <h4>Câu ${i+1}. ${q.q}</h4>
+        <div style="margin-top:0.6rem;">
+          <input type="number" step="any" class="short-input" id="short_${q.id}" placeholder="Nhập kết quả số...">
+        </div>
+        <div class="exam-solution-box" id="sol_short_${q.id}">💡 <strong>Đáp án chuẩn:</strong> ${q.ans} | <strong>Giải thích:</strong> ${q.sol}</div>
+      </div>
+    `;
+  });
+
+  html += `
+    <div id="examActionBar" style="text-align:center; margin-top:2rem;">
+      <button class="submit-exam-btn" id="btnSubmitExam" onclick="submitExam()">NỘP BÀI THI & CHẤM ĐIỂM CHUẨN GDPT 2018</button>
+      <div id="examNextActions" style="display:none; margin-top:1.2rem; justify-content:center; gap:1rem; flex-wrap:wrap;">
+        <button class="btn-primary" style="font-size:1.05rem; padding:0.8rem 1.6rem;" onclick="generateNewExam()">🌟 LÀM ĐỀ 28 CÂU MỚI TIẾP THEO ➔</button>
+        <button class="btn-secondary" style="font-size:1rem; padding:0.8rem 1.4rem;" onclick="renderExam(); resetThptTimer(); window.scrollTo({top:0, behavior:'smooth'});">🔄 Làm lại đề này</button>
+      </div>
+    </div>
+  `;
+
+  wrap.innerHTML = html;
+  const thptStartBtn = document.getElementById('btnStartThptTimer');
+  if (thptStartBtn) {
+    thptStartBtn.style.display = 'inline-block';
+    thptStartBtn.innerHTML = '▶️ Bắt đầu làm bài';
+  }
+}
+
+function submitExam() {
+  if (isThptSubmitted) return;
+  isThptSubmitted = true;
+  clearInterval(thptTimerInterval);
+  isThptRunning = false;
+  const thptBtn = document.getElementById('btnStartThptTimer');
+  if (thptBtn) thptBtn.style.display = 'none';
+
+  let scorePart1 = 0; let scorePart2 = 0; let scorePart3 = 0;
+
+  activeExamMCQ.forEach(q => {
+    const sel = document.querySelector(`input[name="mcq_${q.id}"]:checked`);
+    if (sel && parseInt(sel.value) === q.ans) scorePart1 += 0.25;
+    document.getElementById(`sol_mcq_${q.id}`).style.display = 'block';
+  });
+
+  activeExamTF.forEach(q => {
+    let correctInQuestion = 0;
+    q.items.forEach((it, idx) => {
+      const sel = document.querySelector(`input[name="tf_${q.id}_${idx}"]:checked`);
+      if (sel && ((sel.value === 'true') === it.correct)) correctInQuestion++;
+      document.getElementById(`sol_tf_${q.id}_${idx}`).style.display = 'block';
+    });
+    if (correctInQuestion === 1) scorePart2 += 0.1;
+    else if (correctInQuestion === 2) scorePart2 += 0.25;
+    else if (correctInQuestion === 3) scorePart2 += 0.5;
+    else if (correctInQuestion === 4) scorePart2 += 1.0;
+  });
+
+  activeExamShort.forEach(q => {
+    const val = parseFloat(document.getElementById(`short_${q.id}`).value);
+    if (!isNaN(val) && Math.abs(val - q.ans) <= 0.05) scorePart3 += 0.25;
+    document.getElementById(`sol_short_${q.id}`).style.display = 'block';
+  });
+
+  const totalScore = (scorePart1 + scorePart2 + scorePart3).toFixed(2);
+  playSound('level');
+
+  document.querySelectorAll('#examContainer input').forEach(inp => inp.disabled = true);
+  document.getElementById('btnSubmitExam').style.display = 'none';
+  const nextActions = document.getElementById('examNextActions');
+  nextActions.style.display = 'flex';
+
+  showToast(`🎯 Tổng điểm đạt được: ${totalScore} / 10.00 điểm! Lời giải chi tiết đã hiển thị.`);
+}
+
+/* =========================================================
+   10. TẠO ĐỀ THEO MA TRẬN & PDF SGK (45 PHÚT + TỰ LUẬN)
+   - Cho phép upload ảnh ma trận VÀ file PDF sách/tài liệu (tuỳ chọn)
+   - Thời gian xử lý cho phép lên tới 120s để tạo đề có chiều sâu tương đương đề thật
+========================================================= */
+let matrixBase64Images = []; // Mảng lưu nhiều ảnh ma trận/đặc tả [{ dataUrl, base64, name }]
+let uploadedPdfText = "";
+let activeMatrixMCQ = [];
+let activeMatrixTF = [];
+let activeMatrixShort = [];
+let activeMatrixEssay = [];
+let matrixTimerSeconds = 45 * 60;
+let matrixTimerInterval = null;
+let isMatrixSubmitted = false;
+let isMatrixRunning = false;
+
+function resetMatrixTimer() {
+  clearInterval(matrixTimerInterval);
+  matrixTimerInterval = null;
+  isMatrixRunning = false;
+  matrixTimerSeconds = 45 * 60;
+  isMatrixSubmitted = false;
+  updateMatrixTimerDisplay();
+  const btn = document.getElementById('btnStartMatrixTimer');
+  if (btn) btn.innerHTML = '▶️ Bắt đầu làm bài';
+}
+
+function toggleMatrixTimer() {
+  if (isMatrixSubmitted) {
+    showToast('Bài thi ma trận đã nộp!');
+    return;
+  }
+  const btn = document.getElementById('btnStartMatrixTimer');
+  if (isMatrixRunning) {
+    clearInterval(matrixTimerInterval);
+    isMatrixRunning = false;
+    if (btn) btn.innerHTML = '▶️ Tiếp tục làm bài';
+    showToast('Đã tạm dừng đồng hồ đếm ngược đề ma trận.');
+  } else {
+    isMatrixRunning = true;
+    if (btn) btn.innerHTML = '⏸️ Tạm dừng';
+    showToast('⏱️ Bắt đầu tính giờ làm bài ma trận (45 phút)!');
+    matrixTimerInterval = setInterval(() => {
+      matrixTimerSeconds--;
+      updateMatrixTimerDisplay();
+      if (matrixTimerSeconds <= 0) {
+        clearInterval(matrixTimerInterval);
+        isMatrixRunning = false;
+        showToast('⏰ Hết giờ làm bài đề Ma trận! Tự động nộp bài.', true);
+        submitMatrixExam();
+      }
+    }, 1000);
+  }
+}
+
+function updateMatrixTimerDisplay() {
+  const m = Math.floor(matrixTimerSeconds / 60);
+  const s = matrixTimerSeconds % 60;
+  const str = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  const el = document.getElementById('matrixTimerDisplay');
+  if (el) el.textContent = str;
+}
+
+function renderMatrixGallery() {
+  const gallery = document.getElementById('matrixPreviewGallery');
+  const countTag = document.getElementById('matrixImageCountTag');
+  const clearBtn = document.getElementById('btnClearMatrixImages');
+  if (!gallery) return;
+
+  if (matrixBase64Images.length === 0) {
+    gallery.innerHTML = '';
+    if (countTag) countTag.style.display = 'none';
+    if (clearBtn) clearBtn.style.display = 'none';
+    return;
+  }
+
+  if (countTag) {
+    countTag.style.display = 'block';
+    countTag.textContent = `✓ Đã chọn ${matrixBase64Images.length} ảnh (bấm vào khung để thêm tiếp)`;
+  }
+  if (clearBtn) clearBtn.style.display = 'inline-block';
+
+  gallery.innerHTML = matrixBase64Images.map((item, idx) => `
+    <div class="matrix-thumb-item" title="${item.name}">
+      <img src="${item.dataUrl}" alt="Ảnh ${idx + 1}">
+      <span class="matrix-thumb-badge">#${idx + 1}</span>
+      <button type="button" class="matrix-thumb-remove" onclick="removeMatrixImage(event, ${idx})" title="Xóa ảnh này">×</button>
+    </div>
+  `).join('');
+}
+
+function removeMatrixImage(event, index) {
+  if (event) event.stopPropagation();
+  matrixBase64Images.splice(index, 1);
+  renderMatrixGallery();
+  showToast('Đã xóa 1 ảnh khỏi danh sách.');
+}
+
+function clearAllMatrixImages(event) {
+  if (event) event.stopPropagation();
+  matrixBase64Images = [];
+  const inp = document.getElementById('matrixFileInput');
+  if (inp) inp.value = '';
+  renderMatrixGallery();
+  showToast('Đã xóa toàn bộ ảnh ma trận.');
+}
+
+function compressImageFileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const maxDim = 1280;
+        let width = img.width;
+        let height = img.height;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        resolve({
+          dataUrl: compressedDataUrl,
+          base64: compressedDataUrl.split(',')[1],
+          name: file.name
+        });
+      };
+      img.onerror = () => reject(new Error('Lỗi đọc ảnh ' + file.name));
+      img.src = e.target.result;
+    };
+    reader.onerror = () => reject(new Error('Lỗi mở tệp ' + file.name));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function handleMatrixUpload(event) {
+  const files = Array.from(event.target.files || []);
+  if (!files.length) return;
+
+  try {
+    const processed = await Promise.all(files.map(f => compressImageFileToBase64(f)));
+    matrixBase64Images.push(...processed);
+    renderMatrixGallery();
+    showToast(`Đã thêm ${processed.length} ảnh (Tổng: ${matrixBase64Images.length} ảnh)!`);
+  } catch (err) {
+    showToast(err.message, true);
+  } finally {
+    event.target.value = ''; // Cho phép chọn tiếp ảnh khác ở lần bấm sau
+  }
+}
+
+// Xử lý upload và trích xuất text từ file PDF sách giáo khoa / tài liệu
+async function handlePdfUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const tag = document.getElementById('pdfStatusTag');
+  tag.style.display = 'block';
+  tag.innerHTML = `Đang đọc PDF: ${file.name}...`;
+
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    let fullText = "";
+    
+    // Đọc tối đa 15 trang đầu tiên để lấy cốt lõi kiến thức mà không làm quá tải
+    const maxPages = Math.min(pdf.numPages, 15);
+    for (let i = 1; i <= maxPages; i++) {
+      const page = await pdf.getPage(i);
+      const textContent = await page.getTextContent();
+      const pageText = textContent.items.map(item => item.str).join(' ');
+      fullText += `\n--- Trang ${i} ---\n` + pageText;
+    }
+
+    uploadedPdfText = fullText.slice(0, 10000); // Lấy 10,000 ký tự chuẩn
+    tag.innerHTML = `✓ Đã nạp PDF (${maxPages}/${pdf.numPages} trang SGK)!`;
+    showToast(`Đã đọc thành công tài liệu PDF: ${file.name}`);
+  } catch(err) {
+    console.error(err);
+    tag.innerHTML = `⚠️ Không thể đọc PDF: ${err.message}`;
+    showToast('Lỗi đọc file PDF: ' + err.message, true);
+  }
+}
+
+async function generateExamFromMatrix() {
+  const userText = document.getElementById('matrixTextPrompt').value.trim();
+  if (matrixBase64Images.length === 0 && !userText && !uploadedPdfText) {
+    showToast('Vui lòng tải lên ít nhất 1 ảnh ma trận hoặc nhập mô tả cấu trúc đề kiểm tra!', true);
+    return;
+  }
+
+  const btn = document.getElementById('btnGenMatrix');
+  btn.disabled = true;
+  btn.textContent = '⚡ Đang phân tích Ma trận & SGK PDF (Chờ trong khoảng 30-60s)...';
+
+  const resWrap = document.getElementById('matrixResultWrap');
+  const contentBox = document.getElementById('matrixExamContent');
+  resWrap.style.display = 'block';
+  contentBox.innerHTML = `
+    <div style="text-align: center; padding: 3rem 1rem;">
+      <div style="font-size: 2.8rem; margin-bottom: 0.8rem;">🔬</div>
+      <p style="color: #6ee7b7; font-weight: 700; font-size: 1.1rem;">Dr. Coda đang đối chiếu ma trận và tài liệu SGK PDF...</p>
+      <small style="color: #94a3b8; font-size: 0.9rem;">Hệ thống đang biên soạn bộ đề phân hóa chuẩn kiến thức (có thể mất 30-60 giây để đảm bảo độ khó tương đương đề thi thật).</small>
+    </div>
+  `;
+
+  try {
+    let pdfContextNotice = "";
+    if (uploadedPdfText) {
+      pdfContextNotice = `\n[TÀI LIỆU SÁCH GIÁO KHOA / TÀI LIỆU THAM KHẢO]:\n${uploadedPdfText}\n-> YÊU CẦU: Ưu tiên dùng các thuật ngữ, bảng số liệu và ngữ cảnh từ tài liệu trên để ra đề chuẩn xác 100%.\n`;
+    }
+
+    const multiImgNotice = matrixBase64Images.length > 0
+      ? `Có tổng cộng ${matrixBase64Images.length} ảnh đính kèm (có thể là nhiều trang của bảng ma trận, bảng đặc tả hoặc hình vẽ/sơ đồ đề thi). Hãy tổng hợp thông tin từ TẤT CẢ ${matrixBase64Images.length} ảnh này.`
+      : "";
+
+    const prompt = `Bạn là chuyên gia khảo thí và ra đề thi Sinh học THPT Việt Nam (chương trình GDPT 2018).
+Yêu cầu ra đề:
+1. Đọc kỹ toàn bộ ảnh ma trận/đặc tả đính kèm và văn bản mô tả sau: "${userText}". ${multiImgNotice}
+${pdfContextNotice}
+2. Phân tích và biên soạn ĐẦY ĐỦ 100% số lượng câu hỏi theo đúng ma trận và mức độ nhận thức (Nhận biết, Thông hiểu, Vận dụng), độ khó phân hóa tương đương đề thi chính thức:
+   - mcq: Trắc nghiệm 4 phương án (mỗi câu gồm id, q, opts [4 phương án A,B,C,D], ans [chỉ số đáp án đúng ngẫu nhiên 0, 1, 2 hoặc 3], sol).
+   - tf: Trắc nghiệm đúng sai (id, lead [đoạn dữ kiện phân hóa], items [4 ý a,b,c,d, mỗi ý gồm text, correct, sol]).
+   - short: Trắc nghiệm điền số ngắn (id, q [bài toán tính toán], ans [số], sol).
+   - essay: Câu hỏi tự luận nếu ma trận có (id, q, points, hint [gợi ý đáp án và thang điểm chi tiết]).
+3. TUYỆT ĐỐI KHÔNG CẮT BỚT CÂU. Đảm bảo dữ liệu JSON hợp lệ 100%.`;
+
+    const parts = [{ text: prompt }];
+    matrixBase64Images.forEach(imgObj => {
+      parts.push({ inline_data: { mime_type: "image/jpeg", data: imgObj.base64 } });
+    });
+
+    // Đặt token 6000 và cờ JSON = true để sinh đầy đủ cả tự luận mà không bao giờ bị Unterminated string
+    const rawRes = await callGeminiAPI(parts, false, 6000, true);
+    const cleanJson = rawRes.replace(/```json/g, '').replace(/```/g, '').trim();
+    const parsed = JSON.parse(cleanJson);
+
+    activeMatrixMCQ = (parsed.mcq || []).map(shuffleMcqOptions);
+    activeMatrixTF = parsed.tf || [];
+    activeMatrixShort = parsed.short || [];
+    activeMatrixEssay = parsed.essay || [];
+
+    renderMatrixExam(parsed.title || "ĐỀ KIỂM TRA THEO MA TRẬN & SGK (45 PHÚT)");
+    resetMatrixTimer();
+    document.getElementById('matrixTimerBox').style.display = 'flex';
+    const mBtn = document.getElementById('btnStartMatrixTimer');
+    if (mBtn) mBtn.style.display = 'inline-block';
+    showToast('Đã biên soạn đề ma trận thành công! Bắt đầu tính giờ 45 phút.');
+  } catch(err) {
+    console.error(err);
+    contentBox.innerHTML = `<div style="color: #f87171; padding: 1.5rem; text-align:center;">⚠️ Lỗi tạo đề: ${err.message}. Vui lòng thử lại.</div>`;
+    showToast('Lỗi tạo đề: ' + err.message, true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🚀 Phân tích Ma trận, Sách & Biên soạn Đề Ngay (Chờ ~30-60s)';
+  }
+}
+
+function renderMatrixExam(examTitle) {
+  const contentBox = document.getElementById('matrixExamContent');
+  let html = `<h3 class="text-amber" style="margin-bottom: 1.2rem; text-align: center; font-size:1.2rem;">📑 ${examTitle}</h3>`;
+
+  // PHẦN I: MCQ
+  if (activeMatrixMCQ.length > 0) {
+    html += `<h4 class="text-emerald" style="margin: 1.2rem 0 0.6rem;">PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn (${activeMatrixMCQ.length} câu)</h4>`;
+    activeMatrixMCQ.forEach((q, i) => {
+      html += `
+        <div class="glass question-item" id="box_mat_mcq_${q.id}">
+          <h4>Câu ${i + 1}. ${q.q}</h4>
+          <div class="mcq-opts">
+            ${q.opts.map((opt, oIdx) => `
+              <label><input type="radio" name="mat_mcq_${q.id}" value="${oIdx}"> <strong>${String.fromCharCode(65 + oIdx)}.</strong> ${opt}</label>
+            `).join('')}
+          </div>
+          <div class="exam-solution-box" id="sol_mat_mcq_${q.id}">💡 <strong>Lời giải:</strong> ${q.sol}</div>
+        </div>
+      `;
+    });
+  }
+
+  // PHẦN II: TF
+  if (activeMatrixTF.length > 0) {
+    html += `<h4 class="text-amber" style="margin: 1.6rem 0 0.6rem;">PHẦN II. Câu trắc nghiệm đúng sai (${activeMatrixTF.length} câu)</h4>`;
+    activeMatrixTF.forEach((q, i) => {
+      html += `
+        <div class="glass question-item" id="box_mat_tf_${q.id}">
+          <h4>Câu ${i + 1}. ${q.lead}</h4>
+          ${q.items.map((it, itIdx) => `
+            <div class="tf-row">
+              <div class="tf-text">${it.text}</div>
+              <div class="tf-choices">
+                <label><input type="radio" name="mat_tf_${q.id}_${itIdx}" value="true"> Đúng</label>
+                <label><input type="radio" name="mat_tf_${q.id}_${itIdx}" value="false"> Sai</label>
+              </div>
+            </div>
+            <div class="exam-solution-box" id="sol_mat_tf_${q.id}_${itIdx}">💡 ${it.sol}</div>
+          `).join('')}
+        </div>
+      `;
+    });
+  }
+
+  // PHẦN III: SHORT
+  if (activeMatrixShort.length > 0) {
+    html += `<h4 class="text-cyan" style="margin: 1.6rem 0 0.6rem;">PHẦN III. Câu trắc nghiệm trả lời ngắn (${activeMatrixShort.length} câu)</h4>`;
+    activeMatrixShort.forEach((q, i) => {
+      html += `
+        <div class="glass question-item" id="box_mat_short_${q.id}">
+          <h4>Câu ${i + 1}. ${q.q}</h4>
+          <div style="margin-top: 0.6rem;">
+            <input type="number" step="any" class="short-input" id="mat_short_${q.id}" placeholder="Nhập số kết quả...">
+          </div>
+          <div class="exam-solution-box" id="sol_mat_short_${q.id}">💡 <strong>Đáp án:</strong> ${q.ans} | <strong>Giải thích:</strong> ${q.sol}</div>
+        </div>
+      `;
+    });
+  }
+
+  // PHẦN IV: TỰ LUẬN (CHỈ HIỆN GỢI Ý & THANG ĐIỂM KHI NỘP BÀI)
+  if (activeMatrixEssay.length > 0) {
+    html += `<h4 class="text-rose" style="margin: 1.6rem 0 0.6rem;">PHẦN IV. Câu hỏi Tự Luận (${activeMatrixEssay.length} câu)</h4>`;
+    activeMatrixEssay.forEach((q, i) => {
+      html += `
+        <div class="glass question-item" id="box_mat_essay_${q.id}">
+          <h4>Câu ${i + 1} (${q.points || 'Tự luận'}). ${q.q}</h4>
+          <div style="margin-top: 0.6rem;">
+            <textarea class="essay-textarea" id="mat_essay_${q.id}" placeholder="Học sinh nhập câu trả lời tự luận tại đây..."></textarea>
+          </div>
+          <div class="essay-hint-box" id="hint_mat_essay_${q.id}">
+            📘 <strong>GỢI Ý ĐÁP ÁN & THANG ĐIỂM CHI TIẾT:</strong><br>${q.hint}
+          </div>
+        </div>
+      `;
+    });
+  }
+
+  html += `
+    <div id="matExamActionBar" style="text-align: center; margin-top: 2rem;">
+      <button class="submit-exam-btn" id="btnSubmitMatrixExam" onclick="submitMatrixExam()">NỘP BÀI THI & XEM GỢI Ý ĐÁP ÁN MA TRẬN</button>
+      <div id="matExamScoreNotice" style="display: none; margin-top: 1.2rem; font-size: 1.15rem; font-weight: 700;" class="text-emerald"></div>
+    </div>
+  `;
+
+  contentBox.innerHTML = html;
+}
+
+function submitMatrixExam() {
+  if (isMatrixSubmitted) return;
+  isMatrixSubmitted = true;
+  clearInterval(matrixTimerInterval);
+  isMatrixRunning = false;
+  const matBtn = document.getElementById('btnStartMatrixTimer');
+  if (matBtn) matBtn.style.display = 'none';
+
+  let scorePart1 = 0;
+  let scorePart2 = 0;
+  let scorePart3 = 0;
+
+  activeMatrixMCQ.forEach(q => {
+    const sel = document.querySelector(`input[name="mat_mcq_${q.id}"]:checked`);
+    if (sel && parseInt(sel.value) === q.ans) scorePart1 += 0.25;
+    const solEl = document.getElementById(`sol_mat_mcq_${q.id}`);
+    if (solEl) solEl.style.display = 'block';
+  });
+
+  activeMatrixTF.forEach(q => {
+    let correctCount = 0;
+    q.items.forEach((it, idx) => {
+      const sel = document.querySelector(`input[name="mat_tf_${q.id}_${idx}"]:checked`);
+      if (sel && ((sel.value === 'true') === it.correct)) correctCount++;
+      const solEl = document.getElementById(`sol_mat_tf_${q.id}_${idx}`);
+      if (solEl) solEl.style.display = 'block';
+    });
+    if (correctCount === 1) scorePart2 += 0.1;
+    else if (correctCount === 2) scorePart2 += 0.25;
+    else if (correctCount === 3) scorePart2 += 0.5;
+    else if (correctCount === 4) scorePart2 += 1.0;
+  });
+
+  activeMatrixShort.forEach(q => {
+    const valInp = document.getElementById(`mat_short_${q.id}`);
+    if (valInp) {
+      const val = parseFloat(valInp.value);
+      if (!isNaN(val) && Math.abs(val - q.ans) <= 0.05) scorePart3 += 0.25;
+    }
+    const solEl = document.getElementById(`sol_mat_short_${q.id}`);
+    if (solEl) solEl.style.display = 'block';
+  });
+
+  // Mở toàn bộ gợi ý đáp án tự luận sau khi nộp bài
+  activeMatrixEssay.forEach(q => {
+    const hintEl = document.getElementById(`hint_mat_essay_${q.id}`);
+    if (hintEl) hintEl.style.display = 'block';
+  });
+
+  const objectiveScore = (scorePart1 + scorePart2 + scorePart3).toFixed(2);
+  playSound('level');
+
+  document.querySelectorAll('#matrixExamContent input, #matrixExamContent textarea').forEach(inp => inp.disabled = true);
+  document.getElementById('btnSubmitMatrixExam').style.display = 'none';
+
+  const notice = document.getElementById('matExamScoreNotice');
+  notice.style.display = 'block';
+  if (activeMatrixEssay.length > 0) {
+    notice.innerHTML = `🎯 ĐIỂM TRẮC NGHIỆM ĐẠT ĐƯỢC: ${objectiveScore} ĐIỂM!<br><span style="color:#38bdf8; font-size:0.95rem;">(Phần Tự Luận đã hiển thị khung GỢI Ý ĐÁP ÁN màu xanh dương bên dưới để bạn tự đối chiếu)</span>`;
+  } else {
+    notice.innerHTML = `🎯 KẾT QUẢ ĐẠT ĐƯỢC: ${objectiveScore} ĐIỂM!<br><small style="color: #cbd5e1; font-weight: normal;">Lời giải chi tiết từng câu đã được mở bên dưới.</small>`;
+  }
+
+  showToast(`🎯 Nộp bài thành công! Đã mở toàn bộ lời giải và gợi ý tự luận.`);
+}
+
+/* =========================================================
+   11. CHATBOT DR. CODA
+========================================================= */
+let chatHistory = [];
+let pendingChatImageBase64 = null;
+let pendingChatImageDataUrl = null;
+
+function toggleChat() {
+  document.getElementById('chatWindow').classList.toggle('open');
+}
+
+function setChatImageFromDataUrl(dataUrl, label = 'Ảnh bài tập đã sẵn sàng') {
+  const img = new Image();
+  img.onload = () => {
+    const maxDim = 1280;
+    let w = img.width;
+    let h = img.height;
+    if (w > maxDim || h > maxDim) {
+      if (w > h) {
+        h = Math.round((h * maxDim) / w);
+        w = maxDim;
+      } else {
+        w = Math.round((w * maxDim) / h);
+        h = maxDim;
+      }
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, w, h);
+
+    const compressed = canvas.toDataURL('image/jpeg', 0.85);
+    pendingChatImageDataUrl = compressed;
+    pendingChatImageBase64 = compressed.split(',')[1];
+
+    document.getElementById('chatPreviewThumb').src = compressed;
+    document.getElementById('chatPreviewLabel').textContent = label;
+    document.getElementById('chatPreviewBar').classList.add('show');
+    document.getElementById('chatInput').focus();
+  };
+  img.src = dataUrl;
+}
+
+function clearChatImage() {
+  pendingChatImageBase64 = null;
+  pendingChatImageDataUrl = null;
+  document.getElementById('chatPreviewBar').classList.remove('show');
+  document.getElementById('chatPreviewThumb').src = '';
+  const fileInp = document.getElementById('chatImageInput');
+  if (fileInp) fileInp.value = '';
+}
+
+function handleChatImageUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    setChatImageFromDataUrl(e.target.result, file.name);
+    showToast('Đã đính kèm ảnh bài tập!');
+  };
+  reader.readAsDataURL(file);
+}
+
+async function captureScreenForChat() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+    showToast('Trình duyệt không hỗ trợ chụp màn hình trực tiếp. Bạn có thể chụp bằng phím PrintScreen rồi dán (Ctrl+V) vào khung chat!', true);
+    return;
+  }
+  try {
+    const stream = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: 'never' }, audio: false });
+    const video = document.createElement('video');
+    video.srcObject = stream;
+    await video.play();
+
+    await new Promise(r => setTimeout(r, 250));
+
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    stream.getTracks().forEach(track => track.stop());
+
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+    setChatImageFromDataUrl(dataUrl, 'Ảnh chụp màn hình');
+    showToast('Đã chụp màn hình! Nhập thêm yêu cầu hoặc bấm Gửi.');
+  } catch (err) {
+    if (err.name !== 'NotAllowedError') {
+      showToast('Không thể chụp màn hình: ' + err.message, true);
+    }
+  }
+}
+
+// Hỗ trợ dán ảnh trực tiếp (Ctrl + V) vào ô chat
+document.addEventListener('paste', (event) => {
+  const chatWin = document.getElementById('chatWindow');
+  if (!chatWin || !chatWin.classList.contains('open')) return;
+  const items = event.clipboardData?.items;
+  if (!items) return;
+  for (let i = 0; i < items.length; i++) {
+    if (items[i].type.indexOf('image') !== -1) {
+      const blob = items[i].getAsFile();
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setChatImageFromDataUrl(e.target.result, 'Ảnh dán từ Clipboard');
+        showToast('Đã dán ảnh vào khung chat!');
+      };
+      reader.readAsDataURL(blob);
+      event.preventDefault();
+      break;
+    }
+  }
+});
+
+async function sendChat() {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  const imgBase64 = pendingChatImageBase64;
+  const imgDataUrl = pendingChatImageDataUrl;
+
+  if (!text && !imgBase64) return;
+
+  const msgs = document.getElementById('chatMessages');
+  const userTextDisplay = text || 'Hãy đọc đề bài trong ảnh và giải chi tiết giúp mình nhé!';
+  let userBubbleHtml = '';
+  if (imgDataUrl) {
+    userBubbleHtml += `<img src="${imgDataUrl}" class="chat-sent-img" alt="Đề bài">`;
+  }
+  userBubbleHtml += `<div>${userTextDisplay}</div>`;
+  msgs.innerHTML += `<div class="msg user">${userBubbleHtml}</div>`;
+
+  input.value = '';
+  clearChatImage();
+
+  const botMsgEl = document.createElement('div');
+  botMsgEl.className = 'msg bot';
+  botMsgEl.textContent = imgBase64 ? 'Dr. Coda đang đọc ảnh đề bài và giải chi tiết...' : 'Dr. Coda đang suy nghĩ...';
+  msgs.appendChild(botMsgEl);
+  msgs.scrollTop = msgs.scrollHeight;
+
+  const userParts = [{ text: userTextDisplay }];
+  if (imgBase64) {
+    userParts.push({ inline_data: { mime_type: 'image/jpeg', data: imgBase64 } });
+  }
+
+  chatHistory.push({ role: "user", parts: userParts });
+  if (chatHistory.length > 6) chatHistory = chatHistory.slice(-6);
+
+  try {
+    const reply = await callGeminiAPI(chatHistory, true);
+    chatHistory.push({ role: "model", parts: [{ text: reply }] });
+    botMsgEl.innerHTML = formatMarkdown(reply);
+  } catch(e) {
+    botMsgEl.innerHTML = `<span class="text-rose">Lỗi: ${e.message}</span>. Vui lòng thử lại nhé!`;
+  }
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+/* =========================================================
+   12. FLASHCARD & MODAL KEY
+========================================================= */
+let wrongCards = JSON.parse(localStorage.getItem('bioquest_wrong') || '[]');
+
+function recordWrongCard(q, a, exp) {
+  if (!wrongCards.some(c => c.q === q)) {
+    wrongCards.unshift({ q, a, exp });
+    localStorage.setItem('bioquest_wrong', JSON.stringify(wrongCards.slice(0, 50)));
+    renderFlashcards();
+    saveUserDataToCloud();
+  }
+}
+
+function renderFlashcards() {
+  const grid = document.getElementById('flashGrid');
+  const empty = document.getElementById('flashEmpty');
+  if (!wrongCards.length) {
+    grid.innerHTML = ''; empty.style.display = 'block'; return;
+  }
+  empty.style.display = 'none';
+  grid.innerHTML = wrongCards.map(c => `
+    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+      <div class="flash-inner">
+        <div class="flash-front glass"><div><strong>❓ ${c.q}</strong></div></div>
+        <div class="flash-back glass"><div><strong class="text-emerald">✓ Đáp án: ${c.a}</strong><br><small style="margin-top:0.4rem;display:block;">${c.exp}</small></div></div>
+      </div>
+    </div>
+  `).join('');
+}
+
+document.getElementById('apiKeyBtn').addEventListener('click', () => {
+  document.getElementById('apiKeyInput').value = GEMINI_API_KEY;
+  document.getElementById('apiKeyModal').classList.add('open');
+});
+function closeApiKeyModal() { document.getElementById('apiKeyModal').classList.remove('open'); }
+function saveApiKey() {
+  const val = document.getElementById('apiKeyInput').value.trim();
+  if (val) {
+    GEMINI_API_KEY = val;
+    localStorage.setItem('bioquest_gemini_key', val);
+    showToast('Đã lưu Gemini API Key thành công!');
+    closeApiKeyModal();
+    prefetchNextQuestions(STAGE_CONFIG[0]);
+  }
+}
+
+/* =========================================================
+   13. LAB DI TRUYỀN ẢO
+========================================================= */
+function switchTab(tabId) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById(tabId).classList.add('active');
+  const btn = document.querySelector(`.nav-btn[data-tab="${tabId}"]`);
+  if (btn) btn.classList.add('active');
+  if (tabId === 'lab') initLab('abo');
+  if (tabId === 'exam') {
+    renderExam();
+    if (!thptTimerInterval) resetThptTimer();
+  }
+  if (tabId === 'wiki') renderFlashcards();
+}
+document.querySelectorAll('.nav-btn').forEach(btn => {
+  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+});
+
+let currentLabMode = 'abo';
+document.querySelectorAll('.mode-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    initLab(btn.dataset.mode);
+  });
+});
+
+function initLab(mode) {
+  currentLabMode = mode;
+  const desc = document.getElementById('labDesc');
+  const controls = document.getElementById('labControls');
+  document.getElementById('labResult').innerHTML = '';
+
+  if (mode === 'abo') {
+    desc.innerHTML = '🩸 <strong>Hệ Nhóm Máu ABO ở Người</strong>: Quy định bởi 3 allele <em>Iᴬ, Iᴮ, Iᴼ</em>. <em>Iᴬ</em> và <em>Iᴮ</em> đồng trội, <em>Iᴼ</em> lặn hoàn toàn.';
+    controls.innerHTML = `
+      <div><label>Người Bố (P₁)</label><select id="p1" onchange="runCross()">
+        <option value="IAIA">IᴬIᴬ (Nhóm máu A đồng hợp)</option>
+        <option value="IAIO">IᴬIᴼ (Nhóm máu A dị hợp)</option>
+        <option value="IBIB">IᴮIᴮ (Nhóm máu B đồng hợp)</option>
+        <option value="IBIO">IᴮIᴼ (Nhóm máu B dị hợp)</option>
+        <option value="IAIB" selected>IᴬIᴮ (Nhóm máu AB đồng trội)</option>
+        <option value="IOIO">IᴼIᴼ (Nhóm máu O lặn)</option>
+      </select></div>
+      <div><label>Người Mẹ (P₂)</label><select id="p2" onchange="runCross()">
+        <option value="IAIA">IᴬIᴬ (Nhóm máu A đồng hợp)</option>
+        <option value="IAIO">IᴬIᴼ (Nhóm máu A dị hợp)</option>
+        <option value="IBIB">IᴮIᴮ (Nhóm máu B đồng hợp)</option>
+        <option value="IBIO">IᴮIᴼ (Nhóm máu B dị hợp)</option>
+        <option value="IAIB">IᴬIᴮ (Nhóm máu AB đồng trội)</option>
+        <option value="IOIO" selected>IᴼIᴼ (Nhóm máu O lặn)</option>
+      </select></div>
+    `;
+  } else if (mode === 'mendel') {
+    desc.innerHTML = '🌱 <strong>Mendel - Đậu Hà Lan</strong>: Thí nghiệm lai tính trạng phân li độc lập. Ký hiệu kiểu gen: <em>A: Hạt vàng > a: Hạt xanh; B: Vỏ trơn > b: Vỏ nhăn</em>.';
+    controls.innerHTML = `
+      <div><label>P₁ (Bố)</label><select id="p1" onchange="runCross()">
+        <option value="AA">AA (Hạt vàng thuần chủng)</option>
+        <option value="Aa" selected>Aa (Hạt vàng dị hợp)</option>
+        <option value="aa">aa (Hạt xanh)</option>
+      </select></div>
+      <div><label>P₂ (Mẹ)</label><select id="p2" onchange="runCross()">
+        <option value="AA">AA (Hạt vàng thuần chủng)</option>
+        <option value="Aa">Aa (Hạt vàng dị hợp)</option>
+        <option value="aa" selected>aa (Hạt xanh)</option>
+      </select></div>
+    `;
+  } else if (mode === 'morgan') {
+    desc.innerHTML = '🪰 <strong>Morgan - Ruồi Giấm</strong>: Gen nằm trên NST X không có alen trên Y (<em>Xᵂ: Mắt đỏ > Xʷ: Mắt trắng</em>).';
+    controls.innerHTML = `
+      <div><label>Ruồi Cái P₁ (XX)</label><select id="p1" onchange="runCross()">
+        <option value="XWXW">XᵂXᵂ (Mắt đỏ đồng hợp)</option>
+        <option value="XWXw" selected>XᵂXʷ (Mắt đỏ dị hợp)</option>
+        <option value="XwXw">XʷXʷ (Mắt trắng)</option>
+      </select></div>
+      <div><label>Ruồi Đực P₂ (XY)</label><select id="p2" onchange="runCross()">
+        <option value="XWY" selected>XᵂY (Mắt đỏ)</option>
+        <option value="XwY">XʷY (Mắt trắng)</option>
+      </select></div>
+    `;
+  } else {
+    desc.innerHTML = '🌸 <strong>Trội Không Hoàn Toàn (Hoa Dạ Lan)</strong>: <em>CᴿCᴿ</em> (Hoa đỏ), <em>CᵂCᵂ</em> (Hoa trắng), dị hợp <em>CᴿCᵂ</em> (Hoa hồng).';
+    controls.innerHTML = `
+      <div><label>Cây P₁</label><select id="p1" onchange="runCross()"><option value="CRCR">CᴿCᴿ (Hoa đỏ)</option><option value="CRCW" selected>CᴿCᵂ (Hoa hồng)</option><option value="CWCW">CᵂCᵂ (Hoa trắng)</option></select></div>
+      <div><label>Cây P₂</label><select id="p2" onchange="runCross()"><option value="CRCR">CᴿCᴿ (Hoa đỏ)</option><option value="CRCW">CᴿCᵂ (Hoa hồng)</option><option value="CWCW" selected>CᵂCᵂ (Hoa trắng)</option></select></div>
+    `;
+  }
+  runCross();
+}
+
+function runCross() {
+  const p1 = document.getElementById('p1').value;
+  const p2 = document.getElementById('p2').value;
+  const labRes = document.getElementById('labResult');
+
+  drawLabPhenotypes(currentLabMode, p1, p2);
+
+  if (currentLabMode === 'abo') {
+    renderAboCross(p1, p2, labRes);
+  } else if (currentLabMode === 'mendel') {
+    renderMendelCross(p1, p2, labRes);
+  } else if (currentLabMode === 'morgan') {
+    renderMorganCross(p1, p2, labRes);
+  } else if (currentLabMode === 'incomplete') {
+    renderIncompleteCross(p1, p2, labRes);
+  }
+}
+
+function drawLabPhenotypes(mode, p1, p2) {
+  const lCanvas = document.getElementById('labVisualCanvas');
+  const lCtx = lCanvas.getContext('2d');
+  lCtx.clearRect(0, 0, lCanvas.width, lCanvas.height);
+
+  lCtx.fillStyle = "#0b1329";
+  lCtx.fillRect(0, 0, lCanvas.width, lCanvas.height);
+  lCtx.fillStyle = "#1e293b";
+  lCtx.fillRect(0, 150, lCanvas.width, 50);
+
+  lCtx.font = "bold 13px 'Be Vietnam Pro', sans-serif";
+  lCtx.fillStyle = "#94a3b8";
+  lCtx.fillText("Bố / Cá thể P₁", 110, 25);
+  lCtx.fillText("Mẹ / Cá thể P₂", 410, 25);
+  lCtx.fillStyle = "#10b981";
+  lCtx.fillText("× (Phép lai)", 265, 85);
+
+  if (mode === 'abo') {
+    drawRedBloodCell(lCtx, 150, 85, p1);
+    drawRedBloodCell(lCtx, 450, 85, p2);
+  } else if (mode === 'mendel') {
+    drawPeaSeed(lCtx, 150, 85, p1);
+    drawPeaSeed(lCtx, 450, 85, p2);
+  } else if (mode === 'morgan') {
+    drawFruitFly(lCtx, 150, 85, p1);
+    drawFruitFly(lCtx, 450, 85, p2);
+  } else {
+    drawFlower(lCtx, 150, 85, p1);
+    drawFlower(lCtx, 450, 85, p2);
+  }
+}
+
+function drawRedBloodCell(lCtx, x, y, gen) {
+  lCtx.fillStyle = "#991b1b";
+  lCtx.beginPath(); lCtx.arc(x, y, 36, 0, Math.PI * 2); lCtx.fill();
+  lCtx.fillStyle = "#ef4444";
+  lCtx.beginPath(); lCtx.arc(x - 3, y - 3, 30, 0, Math.PI * 2); lCtx.fill();
+  lCtx.fillStyle = "#7f1d1d";
+  lCtx.beginPath(); lCtx.arc(x, y, 16, 0, Math.PI * 2); lCtx.fill();
+
+  if (gen.includes('IA')) {
+    lCtx.fillStyle = "#06b6d4";
+    for(let i=0; i<6; i++) {
+      let ang = (i * Math.PI) / 3;
+      lCtx.fillRect(x + Math.cos(ang)*40 - 4, y + Math.sin(ang)*40 - 4, 8, 8);
+    }
+  }
+  if (gen.includes('IB')) {
+    lCtx.fillStyle = "#fbbf24";
+    for(let i=0; i<6; i++) {
+      let ang = (i * Math.PI) / 3 + 0.52;
+      lCtx.beginPath(); lCtx.arc(x + Math.cos(ang)*40, y + Math.sin(ang)*40, 5, 0, Math.PI*2); lCtx.fill();
+    }
+  }
+
+  lCtx.fillStyle = "#f8fafc";
+  lCtx.font = "bold 12px 'Be Vietnam Pro', sans-serif";
+  let bName = "Nhóm máu O (Không kháng nguyên)";
+  if (gen.includes('IA') && gen.includes('IB')) bName = "Nhóm máu AB (Cả A & B)";
+  else if (gen.includes('IA')) bName = "Nhóm máu A (Kháng nguyên A)";
+  else if (gen.includes('IB')) bName = "Nhóm máu B (Kháng nguyên B)";
+  lCtx.fillText(bName, x - 55, y + 62);
+}
+
+function drawPeaSeed(lCtx, x, y, gen) {
+  const isYellow = gen.includes('A');
+  lCtx.fillStyle = isYellow ? "#eab308" : "#22c55e";
+  lCtx.beginPath(); lCtx.arc(x, y, 32, 0, Math.PI*2); lCtx.fill();
+  lCtx.fillStyle = isYellow ? "#fef08a" : "#86efac";
+  lCtx.beginPath(); lCtx.arc(x - 4, y - 4, 12, 0, Math.PI*2); lCtx.fill();
+  lCtx.fillStyle = "#fff";
+  lCtx.font = "bold 12px 'Be Vietnam Pro', sans-serif";
+  lCtx.fillText(isYellow ? "Hạt Vàng" : "Hạt Xanh", x - 26, y + 55);
+}
+
+function drawFruitFly(lCtx, x, y, gen) {
+  lCtx.fillStyle = "#78350f"; lCtx.fillRect(x - 14, y - 12, 28, 32);
+  lCtx.fillStyle = "rgba(226, 232, 240, 0.7)";
+  lCtx.fillRect(x - 26, y - 18, 18, 28); lCtx.fillRect(x + 8, y - 18, 18, 28);
+  const isRed = gen.includes('W');
+  lCtx.fillStyle = isRed ? "#dc2626" : "#f8fafc";
+  lCtx.fillRect(x - 12, y - 18, 9, 9); lCtx.fillRect(x + 3, y - 18, 9, 9);
+  lCtx.fillStyle = "#fff";
+  lCtx.font = "bold 12px 'Be Vietnam Pro', sans-serif";
+  lCtx.fillText(isRed ? "Mắt Đỏ" : "Mắt Trắng", x - 26, y + 55);
+}
+
+function drawFlower(lCtx, x, y, gen) {
+  let color = "#ef4444"; let title = "Hoa Đỏ";
+  if (gen === 'CRCW') { color = "#f472b6"; title = "Hoa Hồng"; }
+  else if (gen === 'CWCW') { color = "#f8fafc"; title = "Hoa Trắng"; }
+  lCtx.fillStyle = color;
+  for(let i=0; i<5; i++) {
+    let ang = (i * Math.PI * 2) / 5;
+    lCtx.beginPath(); lCtx.arc(x + Math.cos(ang)*18, y + Math.sin(ang)*18, 14, 0, Math.PI*2); lCtx.fill();
+  }
+  lCtx.fillStyle = "#fbbf24";
+  lCtx.beginPath(); lCtx.arc(x, y, 8, 0, Math.PI*2); lCtx.fill();
+  lCtx.fillStyle = "#fff";
+  lCtx.font = "bold 12px 'Be Vietnam Pro', sans-serif";
+  lCtx.fillText(title, x - 26, y + 55);
+}
+
+function renderMendelCross(p1, p2, wrap) {
+  const getGametes = (g) => {
+    if (g === 'AA') return [{ a: 'A', p: 1 }];
+    if (g === 'Aa') return [{ a: 'A', p: 0.5 }, { a: 'a', p: 0.5 }];
+    if (g === 'aa') return [{ a: 'a', p: 1 }];
+    return [];
+  };
+
+  const g1 = getGametes(p1);
+  const g2 = getGametes(p2);
+
+  let html = `
+    <h4 class="text-amber">Sơ đồ lai Mendel: P: ${p1} × ${p2}</h4>
+    <table class="punnett">
+      <tr><th>Giao tử</th>${g2.map(x=>`<th>${x.a} (${x.p*100}%)</th>`).join('')}</tr>
+  `;
+
+  let offspring = {};
+  g1.forEach(row => {
+    html += `<tr><th>${row.a} (${row.p*100}%)</th>`;
+    g2.forEach(col => {
+      let alleles = [row.a, col.a].sort().join('');
+      let prob = row.p * col.p;
+      offspring[alleles] = (offspring[alleles] || 0) + prob;
+      html += `<td><strong>${alleles}</strong><br><small>(${(prob*100).toFixed(1)}%)</small></td>`;
+    });
+    html += `</tr>`;
+  });
+  html += `</table>`;
+
+  html += `<div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem; margin-top:0.8rem;">`;
+  html += `<div><h4 class="text-emerald">Tỉ lệ phân li kiểu gene F₁:</h4><ul style="margin-left:1.5rem; line-height:1.6; font-size:0.92rem;">`;
+  Object.entries(offspring).forEach(([k, p]) => {
+    if (p > 0) html += `<li><strong>${k}</strong>: ${(p*100).toFixed(1)}%</li>`;
+  });
+  html += `</ul></div>`;
+
+  let pheno = { 'Hạt Vàng (A-)': 0, 'Hạt Xanh (aa)': 0 };
+  Object.entries(offspring).forEach(([k, p]) => {
+    if (k.includes('A')) pheno['Hạt Vàng (A-)'] += p;
+    else pheno['Hạt Xanh (aa)'] += p;
+  });
+
+  html += `<div><h4 class="text-cyan">Tỉ lệ phân li kiểu hình F₁:</h4><ul style="margin-left:1.5rem; line-height:1.6; font-size:0.92rem;">`;
+  Object.entries(pheno).forEach(([k, p]) => {
+    if (p > 0) html += `<li><strong>${k}</strong>: ${(p*100).toFixed(1)}%</li>`;
+  });
+  html += `</ul></div></div>`;
+
+  wrap.innerHTML = html;
+}
+
+function renderMorganCross(p1, p2, wrap) {
+  const getGametesFemale = (g) => {
+    if (g === 'XWXW') return [{ a: 'Xᵂ', p: 1 }];
+    if (g === 'XWXw') return [{ a: 'Xᵂ', p: 0.5 }, { a: 'Xʷ', p: 0.5 }];
+    if (g === 'XwXw') return [{ a: 'Xʷ', p: 1 }];
+    return [];
+  };
+  const getGametesMale = (g) => {
+    if (g === 'XWY') return [{ a: 'Xᵂ', p: 0.5 }, { a: 'Y', p: 0.5 }];
+    if (g === 'XwY') return [{ a: 'Xʷ', p: 0.5 }, { a: 'Y', p: 0.5 }];
+    return [];
+  };
+
+  const g1 = getGametesFemale(p1);
+  const g2 = getGametesMale(p2);
+
+  const formatFly = (txt) => txt.replace(/XW/g, 'Xᵂ').replace(/Xw/g, 'Xʷ');
+
+  let html = `
+    <h4 class="text-amber">Sơ đồ lai liên kết giới tính Morgan: P: ♀ ${formatFly(p1)} × ♂ ${formatFly(p2)}</h4>
+    <table class="punnett">
+      <tr><th>Giao tử ♀ \ ♂</th>${g2.map(x=>`<th>${x.a} (${x.p*100}%)</th>`).join('')}</tr>
+  `;
+
+  let offspring = {};
+  g1.forEach(row => {
+    html += `<tr><th>${row.a} (${row.p*100}%)</th>`;
+    g2.forEach(col => {
+      let combined = (col.a === 'Y') ? (row.a + 'Y') : (row.a === 'Xᵂ' || col.a === 'Xᵂ' ? (row.a === 'Xᵂ' && col.a === 'Xʷ' ? 'XᵂXʷ' : (row.a === 'Xʷ' && col.a === 'Xᵂ' ? 'XᵂXʷ' : row.a + col.a)) : row.a + col.a);
+      let prob = row.p * col.p;
+      offspring[combined] = (offspring[combined] || 0) + prob;
+      html += `<td><strong>${combined}</strong><br><small>(${(prob*100).toFixed(1)}%)</small></td>`;
+    });
+    html += `</tr>`;
+  });
+  html += `</table>`;
+
+  html += `<div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem; margin-top:0.8rem;">`;
+  html += `<div><h4 class="text-emerald">Tỉ lệ phân li kiểu gene F₁:</h4><ul style="margin-left:1.5rem; line-height:1.6; font-size:0.92rem;">`;
+  Object.entries(offspring).forEach(([k, p]) => {
+    if (p > 0) html += `<li><strong>${k}</strong>: ${(p*100).toFixed(1)}%</li>`;
+  });
+  html += `</ul></div>`;
+
+  let pheno = {};
+  Object.entries(offspring).forEach(([k, p]) => {
+    let name = '';
+    if (k === 'XᵂXᵂ' || k === 'XᵂXʷ') name = '♀ Ruồi cái mắt đỏ';
+    else if (k === 'XʷXʷ') name = '♀ Ruồi cái mắt trắng';
+    else if (k === 'XᵂY') name = '♂ Ruồi đực mắt đỏ';
+    else if (k === 'XʷY') name = '♂ Ruồi đực mắt trắng';
+    pheno[name] = (pheno[name] || 0) + p;
+  });
+
+  html += `<div><h4 class="text-cyan">Tỉ lệ phân li kiểu hình theo giới tính:</h4><ul style="margin-left:1.5rem; line-height:1.6; font-size:0.92rem;">`;
+  Object.entries(pheno).forEach(([k, p]) => {
+    if (p > 0) html += `<li><strong>${k}</strong>: ${(p*100).toFixed(1)}%</li>`;
+  });
+  html += `</ul></div></div>`;
+
+  wrap.innerHTML = html;
+}
+
+function renderIncompleteCross(p1, p2, wrap) {
+  const getGametes = (g) => {
+    if (g === 'CRCR') return [{ a: 'Cᴿ', p: 1 }];
+    if (g === 'CRCW') return [{ a: 'Cᴿ', p: 0.5 }, { a: 'Cᵂ', p: 0.5 }];
+    if (g === 'CWCW') return [{ a: 'Cᵂ', p: 1 }];
+    return [];
+  };
+
+  const g1 = getGametes(p1);
+  const g2 = getGametes(p2);
+
+  const formatFlower = (t) => t.replace(/CR/g, 'Cᴿ').replace(/CW/g, 'Cᵂ');
+
+  let html = `
+    <h4 class="text-amber">Sơ đồ lai Trội không hoàn toàn: P: ${formatFlower(p1)} × ${formatFlower(p2)}</h4>
+    <table class="punnett">
+      <tr><th>Giao tử</th>${g2.map(x=>`<th>${x.a} (${x.p*100}%)</th>`).join('')}</tr>
+  `;
+
+  let offspring = {};
+  g1.forEach(row => {
+    html += `<tr><th>${row.a} (${row.p*100}%)</th>`;
+    g2.forEach(col => {
+      let combined = (row.a === col.a) ? (row.a + col.a) : 'CᴿCᵂ';
+      let prob = row.p * col.p;
+      offspring[combined] = (offspring[combined] || 0) + prob;
+      html += `<td><strong>${combined}</strong><br><small>(${(prob*100).toFixed(1)}%)</small></td>`;
+    });
+    html += `</tr>`;
+  });
+  html += `</table>`;
+
+  html += `<div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem; margin-top:0.8rem;">`;
+  html += `<div><h4 class="text-emerald">Tỉ lệ phân li kiểu gene F₁:</h4><ul style="margin-left:1.5rem; line-height:1.6; font-size:0.92rem;">`;
+  Object.entries(offspring).forEach(([k, p]) => {
+    if (p > 0) html += `<li><strong>${k}</strong>: ${(p*100).toFixed(1)}%</li>`;
+  });
+  html += `</ul></div>`;
+
+  let pheno = { 'Hoa Đỏ (CᴿCᴿ)': 0, 'Hoa Hồng (CᴿCᵂ)': 0, 'Hoa Trắng (CᵂCᵂ)': 0 };
+  Object.entries(offspring).forEach(([k, p]) => {
+    if (k === 'CᴿCᴿ') pheno['Hoa Đỏ (CᴿCᴿ)'] += p;
+    else if (k === 'CᴿCᵂ') pheno['Hoa Hồng (CᴿCᵂ)'] += p;
+    else if (k === 'CᵂCᵂ') pheno['Hoa Trắng (CᵂCᵂ)'] += p;
+  });
+
+  html += `<div><h4 class="text-cyan">Tỉ lệ phân li kiểu hình F₁:</h4><ul style="margin-left:1.5rem; line-height:1.6; font-size:0.92rem;">`;
+  Object.entries(pheno).forEach(([k, p]) => {
+    if (p > 0) html += `<li><strong>${k}</strong>: ${(p*100).toFixed(1)}%</li>`;
+  });
+  html += `</ul></div></div>`;
+
+  wrap.innerHTML = html;
+}
+
+function renderAboCross(p1, p2, wrap) {
+  const getGametes = (g) => {
+    if (g === 'IAIA') return [{ a: 'Iᴬ', p: 1 }];
+    if (g === 'IAIO') return [{ a: 'Iᴬ', p: 0.5 }, { a: 'Iᴼ', p: 0.5 }];
+    if (g === 'IBIB') return [{ a: 'Iᴮ', p: 1 }];
+    if (g === 'IBIO') return [{ a: 'Iᴮ', p: 0.5 }, { a: 'Iᴼ', p: 0.5 }];
+    if (g === 'IAIB') return [{ a: 'Iᴬ', p: 0.5 }, { a: 'Iᴮ', p: 0.5 }];
+    if (g === 'IOIO') return [{ a: 'Iᴼ', p: 1 }];
+    return [];
+  };
+
+  const g1 = getGametes(p1);
+  const g2 = getGametes(p2);
+
+  let html = `
+    <h4 class="text-amber">Sơ đồ lai nhóm máu ABO: P: ${formatGenotype(p1)} × ${formatGenotype(p2)}</h4>
+    <table class="punnett">
+      <tr><th>Giao tử</th>${g2.map(x=>`<th>${x.a}</th>`).join('')}</tr>
+  `;
+
+  let offspring = {};
+  g1.forEach(row => {
+    html += `<tr><th>${row.a}</th>`;
+    g2.forEach(col => {
+      let combined = combineAbo(row.a, col.a);
+      let prob = row.p * col.p;
+      offspring[combined] = (offspring[combined] || 0) + prob;
+      html += `<td><strong>${combined}</strong><br><small>(${prob*100}%)</small></td>`;
+    });
+    html += `</tr>`;
+  });
+  html += `</table>`;
+
+  html += `<h4 class="text-emerald" style="margin-top:0.8rem;">Dự đoán tỉ lệ kiểu hình đời con:</h4><ul style="margin-left:1.5rem; line-height:1.6; font-size:0.92rem;">`;
+  let pheno = { 'Máu A': 0, 'Máu B': 0, 'Máu AB': 0, 'Máu O': 0 };
+  Object.entries(offspring).forEach(([k, p]) => {
+    if (k.includes('Iᴬ') && k.includes('Iᴮ')) pheno['Máu AB'] += p;
+    else if (k.includes('Iᴬ')) pheno['Máu A'] += p;
+    else if (k.includes('Iᴮ')) pheno['Máu B'] += p;
+    else pheno['Máu O'] += p;
+  });
+
+  Object.entries(pheno).forEach(([k, v]) => {
+    if (v > 0) html += `<li><strong>${k}</strong>: ${(v*100).toFixed(1)}%</li>`;
+  });
+  html += `</ul>`;
+  wrap.innerHTML = html;
+}
+
+function combineAbo(a1, a2) {
+  if (a1 === a2) return a1 + a1;
+  if ((a1==='Iᴬ' && a2==='Iᴼ') || (a1==='Iᴼ' && a2==='Iᴬ')) return 'IᴬIᴼ';
+  if ((a1==='Iᴮ' && a2==='Iᴼ') || (a1==='Iᴼ' && a2==='Iᴮ')) return 'IᴮIᴼ';
+  if ((a1==='Iᴬ' && a2==='Iᴮ') || (a1==='Iᴮ' && a2==='Iᴬ')) return 'IᴬIᴮ';
+  return a1 + a2;
+}
+
+function formatGenotype(txt) {
+  return txt.replace(/IA/g, 'Iᴬ').replace(/IB/g, 'Iᴮ').replace(/IO/g, 'Iᴼ');
+}
+
+const WIKI_ITEMS = {
+  "dna": "DNA (Deoxyribonucleic acid): Đại phân tử hữu cơ cấu tạo theo nguyên tắc đa phân, đơn phân là 4 loại nucleotide (A, T, G, C). Cấu trúc xoắn kép gồm 2 mạch polynucleotide liên kết theo NTBS: A liên kết T (2 liên kết hydrogen), G liên kết C (3 liên kết hydrogen).",
+  "rna": "RNA (Ribonucleic acid): Đại phân tử đơn vị cấu trúc là nucleotide (A, U, G, C). Gồm mRNA (RNA thông tin làm khuôn dịch mã), tRNA (RNA vận chuyển amino acid) và rRNA (cấu tạo nên ribosome).",
+  "codon": "Codon (Bộ ba mã sao): Tổ hợp 3 nucleotide liền kề trên phân tử mRNA mã hóa cho 1 amino acid hoặc tín hiệu kết thúc dịch mã (UAA, UAG, UGA). Bộ ba mở đầu là AUG (mã hóa Methionine ở sinh vật nhân thực).",
+  "exon": "Exon: Vùng trình tự nucleotide trong gen phân mảnh mang thông tin mã hóa amino acid và được giữ lại sau quá trình cắt nối luân phiên (alternative splicing).",
+  "intron": "Intron: Vùng trình tự không mã hóa amino acid xen kẽ giữa các exon trong gen của sinh vật nhân thực, bị cắt bỏ khỏi tiền mRNA.",
+  "nhom mau": "Hệ nhóm máu ABO: Quy định bởi 3 allele Iᴬ, Iᴮ, Iᴼ trên NST số 9. Iᴬ và Iᴮ đồng trội so với Iᴼ lặn. Gồm 4 nhóm máu: A, B, AB và O.",
+  "pha he": "Phả hệ y học: Phương pháp theo dõi sự di truyền tính trạng/bệnh di truyền qua nhiều thế hệ gia đình nhằm xác định quy luật di truyền và dự đoán xác suất sinh con bình thường hoặc mang bệnh.",
+  "operon": "Operon: Cụm các gen cấu trúc có liên quan về chức năng được điều hòa phiên mã chung bởi một promoter và một operator (ví dụ: operon Lac ở E. coli)."
+};
+
+function searchWiki() {
+  const q = document.getElementById('wikiSearch').value.trim().toLowerCase();
+  const resBox = document.getElementById('wikiResults');
+  if (!q) { resBox.innerHTML = ''; return; }
+  let html = '';
+  Object.entries(WIKI_ITEMS).forEach(([k, v]) => {
+    if (k.includes(q) || v.toLowerCase().includes(q)) {
+      html += `<div class="glass" style="padding:0.9rem; margin-bottom:0.6rem;"><strong class="text-emerald">${k.toUpperCase()}</strong>: ${v}</div>`;
+    }
+  });
+  resBox.innerHTML = html || '<div style="color:#94a3b8; font-size:0.9rem;">Không tìm thấy thuật ngữ.</div>';
+}
+
+function triggerConfetti() {
+  const confCanvas = document.getElementById('confettiCanvas');
+  const confCtx = confCanvas.getContext('2d');
+  confCanvas.style.display = 'block';
+  confCanvas.width = window.innerWidth;
+  confCanvas.height = window.innerHeight;
+  let confParticles = [];
+  const colors = ['#10b981', '#06b6d4', '#fbbf24', '#f43f5e', '#a855f7'];
+  for (let i = 0; i < 150; i++) {
+    confParticles.push({
+      x: Math.random() * confCanvas.width,
+      y: -20, r: Math.random() * 6 + 4, d: Math.random() * 20 + 10,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      tilt: Math.random() * 10 - 5, tiltAngle: 0, tiltAngleInc: Math.random() * 0.07 + 0.05
+    });
+  }
+  function animate() {
+    confCtx.clearRect(0, 0, confCanvas.width, confCanvas.height);
+    confParticles.forEach(p => {
+      p.tiltAngle += p.tiltAngleInc;
+      p.y += (Math.cos(p.d) + 3 + p.r / 2);
+      p.x += Math.sin(p.d);
+      p.tilt = Math.sin(p.tiltAngle) * 15;
+      confCtx.beginPath(); confCtx.lineWidth = p.r; confCtx.strokeStyle = p.color;
+      confCtx.moveTo(p.x + p.tilt + p.r / 2, p.y);
+      confCtx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r / 2);
+      confCtx.stroke();
+    });
+    if (confCanvas.style.display === 'block') requestAnimationFrame(animate);
+  }
+  animate();
+  setTimeout(() => { confCanvas.style.display = 'none'; }, 5000);
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  try {
+    const conf = document.getElementById('confettiCanvas');
+    if (conf) { conf.style.display = 'none'; conf.style.pointerEvents = 'none'; }
+    document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('open'));
+
+    if (typeof loadLocalProgress === 'function') loadLocalProgress();
+    if (typeof drawPixelArtScene === 'function') drawPixelArtScene();
+    if (Array.isArray(OFFICIAL_28_MCQ) && activeExamMCQ.length === 0) {
+      activeExamMCQ = OFFICIAL_28_MCQ.map(shuffleMcqOptions);
+      activeExamTF = [...OFFICIAL_28_TF];
+      activeExamShort = [...OFFICIAL_28_SHORT];
+    }
+    if (typeof renderExam === 'function') renderExam();
+    if (typeof resetThptTimer === 'function') resetThptTimer();
+    if (typeof renderFlashcards === 'function') renderFlashcards();
+    if (typeof updateHud === 'function') updateHud();
+    if (typeof prefetchNextQuestions === 'function' && typeof STAGE_CONFIG !== 'undefined') {
+      prefetchNextQuestions(STAGE_CONFIG[0]);
+    }
+  } catch (err) {
+    console.error("Lỗi khởi tạo:", err);
+  }
+});
+</script>
+</body>
+</html>
